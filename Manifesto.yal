@@ -1,0 +1,80 @@
+link "cool/library"
+
+namespace Bar
+{
+interface ITest
+{
+    func fizz() : i32;
+}
+
+class Foo[1k] : ITest // the [1k] gives very instance of Foo 1 kibibytes of stackbased internal heap i.e. object memory
+{
+    public
+    {
+        i32 int_value = 69;
+        u8 uint_value = 42;
+        d64 decimal64_value = 420.69d;
+        str string_value = f"{int_value}hahaha";
+
+        bool[10] bool_array = {false};
+
+        ?i8 this_is_null; // if (this_is_null) is false
+        i8 this_is_ub; // if (this_is_ub) is compile error
+
+        func fizz() : i32
+        {
+            Tazz tazz_obj = new Tazz(); // uses object memory to dynamically allocate an instance of Tazz
+
+            i32 buzz_val = reterr buzz(); // escalates the error if error
+
+            u16 izz_val = izz() onerr // in place error handling
+            {
+                izza_err:
+                    return 0;
+                default:
+                    return error;
+            }
+
+            d32 bzz_val = bzz();
+            if (!iserr bzz_val)
+            {
+                // do stuff if bzz_val was no error
+            }
+            else
+            {
+                // do stuff if bzz_was an error
+            }
+
+            loop(true)
+
+            for (i2 bla : blas)
+            
+            for (true)
+
+            for (i32 i : {0..10, 2})
+        }
+
+        func noerr does_not_ret_err() : bool
+        {
+            // this function is gurenteed to not return an error
+        }
+
+        func this_returns_error_a() : i32
+        {
+            return error_a;
+        }
+    }
+
+    private
+    {
+        !u16 mutable_uint = 10;
+        ?str nullable_string = null;
+    }
+
+    error
+    {
+        [error_a, "This is the a error"],
+        [error_b, "This is the b error"]
+    }
+}
+}
