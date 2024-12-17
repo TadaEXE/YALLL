@@ -45,13 +45,11 @@ class Foo[1k] : ITest // the [1k] gives very instance of Foo 1 kibibytes of stac
                 // do stuff if bzz_was an error
             }
 
-            loop(true)
+            loop(true){}
 
-            for (i2 bla : blas)
+            loop (i2 bla : blas){}
             
-            for (true)
-
-            for (i32 i : {0..10, 2})
+            loop (i32 i = 0; i < 10; i++){}
         }
 
         func noerr does_not_ret_err() : bool
