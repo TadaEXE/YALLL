@@ -4,9 +4,9 @@ grammar YALLL;
 // General:
 program: (interface | class)* EOF;
 
-interface: _interface_kw _name interface_block;
+interface: terminal_interface_kw terminal_name interface_block;
 
-class: _class_kw _name (size)? (_colon_sym _name)? class_block;
+class: terminal_class_kw terminal_name (size)? (terminal_colon_sym terminal_name)? class_block;
 
 statement:
     expression
@@ -18,12 +18,12 @@ expression:
   | definition
   | assignment
   | operation
-  | _break_kw
-  | _continue_kw
-  | _return_kw operation?
-) _semicolon_sym;
+  | terminal_break_kw
+  | terminal_continue_kw
+  | terminal_return_kw operation?
+) terminal_semicolon_sym;
 
-assignment: _name _equal_sym operation;
+assignment: terminal_name terminal_equal_sym operation;
 
 
 // Decs:
@@ -31,9 +31,9 @@ declaration:
     function_dec
   | var_dec;
 
-function_dec: _function_kw _onerr_kw? _name argument_list _colon_sym type;
+function_dec: terminal_function_kw terminal_onerr_kw? terminal_name argument_list terminal_colon_sym type;
 
-var_dec: type _name;
+var_dec: type terminal_name;
 
 
 // Defs:
@@ -42,25 +42,25 @@ definition:
   | error_def
   | var_def;
 
-function_def: _function_kw _noerr_kw? _name argument_list _colon_sym type block;
+function_def: terminal_function_kw terminal_noerr_kw? terminal_name argument_list terminal_colon_sym type block;
 
-error_def: _lbrack_sym _name _comma_sym _string _rbrack_sym;
+error_def: terminal_lbrack_sym terminal_name terminal_comma_sym terminal_string terminal_rbrack_sym;
 
-var_def: type _name _equal_sym operation;
+var_def: type terminal_name terminal_equal_sym operation;
 
 
 // Blocks:
-block: _lcurl_sym statement* _rcurl_sym;
+block: terminal_lcurl_sym statement* terminal_rcurl_sym;
 
-interface_block: _lcurl_sym function_dec* _rcurl_sym;
+interface_block: terminal_lcurl_sym function_dec* terminal_rcurl_sym;
 
-class_block: ((_public_kw pp_block) | (_private_kw pp_block) | (_error_kw error_block))*
+class_block: ((terminal_public_kw pp_block) | (terminal_private_kw pp_block) | (terminal_error_kw error_block))*;
 
-pp_block: _lcurl_sym (function_def | declaration)* _rcurl_sym;
+pp_block: terminal_lcurl_sym (function_def | declaration)* terminal_rcurl_sym;
 
-error_block: _lcurl_sym error_def* _rcurl_sym;
+error_block: terminal_lcurl_sym error_def* terminal_rcurl_sym;
 
-onerr_block: _lcurl_sym switch _rcurl_sym;
+onerr_block: terminal_lcurl_sym switch terminal_rcurl_sym;
 
 // Control structures:
 control_structure:
@@ -70,7 +70,7 @@ control_structure:
 
 
   // Switch
-  switch: (_name _colon_sym statement*)* _default_kw _colon_sym statement*;
+  switch: (terminal_name terminal_colon_sym statement*)* terminal_default_kw terminal_colon_sym statement*;
 
   // Loops:
   loop:
@@ -78,11 +78,11 @@ control_structure:
     | for_loop
     | foreach_loop;
 
-  while_loop: _loop_kw _lparen_sym operation _rparen_sym loop_body;
+  while_loop: terminal_loop_kw terminal_lparen_sym operation terminal_rparen_sym loop_body;
 
-  for_loop: _loop_kw _lparen_sym (definition | assignment)? _semicolon_sym operation? _semicolon_sym operation? _rparen_sym loop_body;
+  for_loop: terminal_loop_kw terminal_lparen_sym (definition | assignment)? terminal_semicolon_sym operation? terminal_semicolon_sym operation? terminal_rparen_sym loop_body;
 
-  foreach_loop: _loop_kw _lparen_sym declaration _colon_sym operation _rparen_sym loop_body;
+  foreach_loop: terminal_loop_kw terminal_lparen_sym declaration terminal_colon_sym operation terminal_rparen_sym loop_body;
 
   loop_body: block;
 
@@ -90,78 +90,78 @@ control_structure:
   // If_else:
   if_else: if else_if* else?;
 
-  if: _if_kw _lparen_sym operation _rbrack_sym block;
+  if: terminal_if_kw terminal_lparen_sym operation terminal_rbrack_sym block;
 
-  else_if: _else_kw _lparen_sym operation _rbrack_sym block;
+  else_if: terminal_else_kw terminal_lparen_sym operation terminal_rbrack_sym block;
 
-  else: _else_kw block;
+  else: terminal_else_kw block;
 
 
 // Precedence climb:
 operation: reterr_op;
 
-reterr_op: _reterr_kw? iserr_op;
+reterr_op: terminal_reterr_kw? iserr_op;
 
-iserr_op: _iserr_kw? onerr_op;
+iserr_op: terminal_iserr_kw? onerr_op;
 
-onerr_op: bool_or_op (_onerr_kw onerr_block)
+onerr_op: bool_or_op (terminal_onerr_kw onerr_block);
 
-bool_or_op: bool_and_op (_or_sym bool_and_op)*;
+bool_or_op: bool_and_op (terminal_or_sym bool_and_op)*;
 
-bool_and_op: compare_op (_and_sym compare_op)*;
+bool_and_op: compare_op (terminal_and_sym compare_op)*;
 
 compare_op: addition_op (compare_sym addition_op)*;
 
-addition_op: multiplication_op ((_plus_sym | _minus_sym) multiplication_op)*;
+addition_op: multiplication_op ((terminal_plus_sym | terminal_minus_sym) multiplication_op)*;
 
-multiplication_op: unary_op ((_mul_sym | _div_sym | _mod_sym) unary_op)*;
+multiplication_op: unary_op ((terminal_mul_sym | terminal_div_sym | terminal_mod_sym) unary_op)*;
 
-unary_op: (_not_sym | _minus_sym)? primary_op;
+unary_op: (terminal_not_sym | terminal_minus_sym)? primary_op;
 
 primary_op:
-    _lparen_sym operation _rparen_sym
+    terminal_lparen_sym operation terminal_rparen_sym
   | function_call
   | terminal_op;
 
 terminal_op:
-    _name
-  | _integer
-  | _decimal
-  | _string
-  | _null_value
-  | _bool_true
-  | _bool_false;
+    terminal_name
+  | terminal_integer
+  | terminal_decimal
+  | terminal_string
+  | terminal_null_value
+  | terminal_bool_true
+  | terminal_bool_false;
 
 
 // Misc:
-size: _lbrack_sym _integer _rbrack_sym;
+size: terminal_lbrack_sym terminal_integer terminal_rbrack_sym;
 
-_bool_true = 'true';
-_bool_false = 'false';
-_null_value = 'null';
+terminal_bool_true: 'true';
+terminal_bool_false: 'false';
+terminal_null_value: 'null';
 
-function_call: _name _lparen_sym parameter_list _rparen_sym;
+function_call: terminal_name terminal_lparen_sym parameter_list terminal_rparen_sym;
 
-parameter_list: (operation (_comma_sym operation)*)?;
+parameter_list: (operation (terminal_comma_sym operation)*)?;
 
 
 // Keywords:
-_interface_kw: 'interface';
-_class_kw: 'class';
-_function_kw: 'function';
-_reterr_kw: 'reterr';
-_onerr_kw: 'onerr';
-_iserr_kw: 'iserr';
-_noerr_kw: 'noerr';
-_error_kw: 'error';
-_loop_kw: 'loop';
-_if_kw: 'if';
-_else_kw: 'else';
-_new_kw: 'new';
-_default_kw: 'default';
-_break_kw: 'break';
-_continue_kw: 'continue';
-_return_kw: 'return';
+terminal_interface_kw: 'interface';
+terminal_class_kw: 'class';
+terminal_function_kw: 'function';
+terminal_reterr_kw: 'reterr';
+terminal_onerr_kw: 'onerr';
+terminal_iserr_kw: 'iserr';
+terminal_noerr_kw: 'noerr';
+terminal_error_kw: 'error';
+terminal_loop_kw: 'loop';
+terminal_if_kw: 'if';
+terminal_else_kw: 'else';
+terminal_new_kw: 'new';
+terminal_default_kw: 'default';
+terminal_break_kw: 'break';
+terminal_continue_kw: 'continue';
+terminal_return_kw: 'return';
 
 
 // Types:
@@ -172,66 +172,67 @@ type:
   | array_type;
  
 array_type: base_t size;
-null_t: _questionmark_sym base_t;
-mut_t: _not_sym base_t;
+null_t: terminal_questionmark_sym base_t;
+mut_t: terminal_not_sym base_t;
   // Base types:
   base_t:
-      _i64_t
-    | _i32_t
-    | _i16_t
-    | _i8_t
-    | _u64_t
-    | _u32_t
-    | _u16_t
-    | _u8_t
-    | _d64_t
-    | _d32_t
-    | _str_t
-    | _bool_t;
+      terminal_i64_t
+    | terminal_i32_t
+    | terminal_i16_t
+    | terminal_i8_t
+    | terminal_u64_t
+    | terminal_u32_t
+    | terminal_u16_t
+    | terminal_u8_t
+    | terminal_d64_t
+    | terminal_d32_t
+    | terminal_str_t
+    | terminal_bool_t;
 
-_i64_t: 'i64';
-_i32_t: 'i32';
-_i16_t: 'i16';
-_i8_t: 'i8';
-_u64_t: 'u64';
-_u32_t: 'u32';
-_u16_t: 'u16';
-_u8_t: 'u8';
-_d64_t: 'd64';
-_d32_t: 'd32';
-_str_t: 'str';
-_bool_t: 'bool'
+terminal_i64_t: 'i64';
+terminal_i32_t: 'i32';
+terminal_i16_t: 'i16';
+terminal_i8_t: 'i8';
+terminal_u64_t: 'u64';
+terminal_u32_t: 'u32';
+terminal_u16_t: 'u16';
+terminal_u8_t: 'u8';
+terminal_d64_t: 'd64';
+terminal_d32_t: 'd32';
+terminal_str_t: 'str';
+terminal_bool_t: 'bool';
 
 
 // Regex types:
-_integer: [0-9]+;
-_decimal: [0-9]* '.' [0-9]+;
-_name: [a-zA-Z_][a-zA-Z0-9_]*;
-_string: '"' ( ~["])* '"';
+terminal_integer: [0-9]+;
+terminal_decimal: [0-9]* '.' [0-9]+;
+terminal_name: [a-zA-Z_][a-zA-Z0-9_]*;
+terminal_string: '"' ( ~["])* '"';
 
 
 // Symbols:
-_colon_sym: ':';
-_semicolon_sym: ';';
-_lparen_sym: '(';
-_rparen_sym: ')';
-_lbrack_sym: '[';
-_rbrack_sym: ']';
-_lcurl_sym: '{';
-_rcurl_sym: '}';
-_or_sym: '||';
-_and_sym: '&&';
-_plus_sym: '+';
-_minus_sym: '-';
-_mul_sym: '*';
-_div_sym: '/';
-_mod_sym: '%';
-_not_sym: '!';
-_comma_sym: ',';
-_dot_sym: '.';
+terminal_colon_sym: ':';
+terminal_semicolon_sym: ';';
+terminal_lparen_sym: '(';
+terminal_rparen_sym: ')';
+terminal_lbrack_sym: '[';
+terminal_rbrack_sym: ']';
+terminal_lcurl_sym: '{';
+terminal_rcurl_sym: '}';
+terminal_or_sym: '||';
+terminal_and_sym: '&&';
+terminal_plus_sym: '+';
+terminal_minus_sym: '-';
+terminal_mul_sym: '*';
+terminal_div_sym: '/';
+terminal_mod_sym: '%';
+terminal_not_sym: '!';
+terminal_comma_sym: ',';
+terminal_dot_sym: '.';
 
 
 // Misc:
 WS: [ \t\r\n\u000C]+ -> skip;
 COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
+
