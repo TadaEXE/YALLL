@@ -1,5 +1,7 @@
 grammar YALLL;
 
+
+// General:
 program: (interface | class)* EOF;
 
 interface: _interface_kw _name interface_block;
@@ -7,18 +9,44 @@ interface: _interface_kw _name interface_block;
 class: _class_kw _name (size)? (_colon_sym _name)? class_block;
 
 statement:
-    (expression | _semicolon_sym)
-  | function_def
-  | var_def
-  | loop;
+    expression
+  | control_structure;
+
+expression:
+(
+    declaration
+  | definition
+  | assignment
+  | operation
+  | _break_kw
+  | _continue_kw
+  | _return_kw operation?
+) _semicolon_sym;
+
+assignment: _name _equal_sym operation;
+
+
+// Decs:
+declaration:
+    function_dec
+  | var_dec;
+
+function_dec: _function_kw _onerr_kw? _name argument_list _colon_sym type;
+
+var_dec: type _name;
 
 
 // Defs:
-function_def: _function_kw _noerr_kw? _name argument_list _colon_sym type (block | _semicolon_sym);
+definition:
+    function_def
+  | error_def
+  | var_def;
+
+function_def: _function_kw _noerr_kw? _name argument_list _colon_sym type block;
 
 error_def: _lbrack_sym _name _comma_sym _string _rbrack_sym;
 
-var_def: type _name (_equal_sym expression)? _semicolon_sym;
+var_def: type _name _equal_sym operation;
 
 
 // Blocks:
@@ -32,59 +60,70 @@ pp_block: _lcurl_sym (function_def | declaration)* _rcurl_sym;
 
 error_block: _lcurl_sym error_def* _rcurl_sym;
 
+onerr_block: _lcurl_sym switch _rcurl_sym;
+
+// Control structures:
+control_structure:
+    loop
+  | switch
+  | if_else;
 
 
-// Loops:
-loop: _loop_kw _lparen_sym
-  (
-      while_loop_type
-    | for_loop_type
-    | foreach_loop_type
-  )
-  _rparen_sym block;
+  // Switch
+  switch: (_name _colon_sym statement*)* _default_kw _colon_sym statement*;
 
-while_loop_type: expression;
+  // Loops:
+  loop:
+      while_loop
+    | for_loop
+    | foreach_loop;
 
-for_loop_type: assignment _semicolon_sym expression _semicolon_sym expression;
+  while_loop: _loop_kw _lparen_sym operation _rparen_sym loop_body;
 
-foreach_loop_type: declaration _colon_sym expression;
+  for_loop: _loop_kw _lparen_sym (definition | assignment)? _semicolon_sym operation? _semicolon_sym operation? _rparen_sym loop_body;
 
-// If_else:
-if_else: if else_if* else?;
+  foreach_loop: _loop_kw _lparen_sym declaration _colon_sym operation _rparen_sym loop_body;
 
-if: _if_kw _lparen_sym expression _rbrack_sym block;
+  loop_body: block;
 
-else_if: _else_kw _lparen_sym expression _rbrack_sym block;
 
-else: _else_kw block;
+  // If_else:
+  if_else: if else_if* else?;
+
+  if: _if_kw _lparen_sym operation _rbrack_sym block;
+
+  else_if: _else_kw _lparen_sym operation _rbrack_sym block;
+
+  else: _else_kw block;
 
 
 // Precedence climb:
-expression: reterr_exp;
+operation: reterr_op;
 
-reterr_exp: _reterr_kw? iserr_exp;
+reterr_op: _reterr_kw? iserr_op;
 
-iserr_exp: _iserr_kw? onerr_exp;
+iserr_op: _iserr_kw? onerr_op;
 
-onerr_exp: bool_or_exp (_onerr_kw onerr_block)
+onerr_op: bool_or_op (_onerr_kw onerr_block)
 
-bool_or_exp: bool_and_exp (_or_sym bool_and_exp)*;
+bool_or_op: bool_and_op (_or_sym bool_and_op)*;
 
-bool_and_exp: compare_exp (_and_sym compare_exp)*;
+bool_and_op: compare_op (_and_sym compare_op)*;
 
-compare_exp: addition_exp (compare_sym addition_exp)*;
+compare_op: addition_op (compare_sym addition_op)*;
 
-addition_exp: multiplication_exp ((_plus_sym | _minus_sym) multiplication_exp)*;
+addition_op: multiplication_op ((_plus_sym | _minus_sym) multiplication_op)*;
 
-multiplication_exp: unary_exp ((_mul_sym | _div_sym | _mod_sym) unary_exp)*;
+multiplication_op: unary_op ((_mul_sym | _div_sym | _mod_sym) unary_op)*;
 
-unary_exp: (_not_sym | _minus_sym)? primary_exp;
+unary_op: (_not_sym | _minus_sym)? primary_op;
 
-primary_exp:
-  _lparen_sym expression _rparen_sym |
-  terminal_exp;
+primary_op:
+    _lparen_sym operation _rparen_sym
+  | function_call
+  | terminal_op;
 
-terminal_exp:
+terminal_op:
     _name
   | _integer
   | _decimal
@@ -94,11 +133,17 @@ terminal_exp:
   | _bool_false;
 
 
+// Misc:
 size: _lbrack_sym _integer _rbrack_sym;
 
 _bool_true = 'true';
 _bool_false = 'false';
 _null_value = 'null';
+
+function_call: _name _lparen_sym parameter_list _rparen_sym;
+
+parameter_list: (operation (_comma_sym operation)*)?;
+
 
 // Keywords:
 _interface_kw: 'interface';
@@ -113,6 +158,11 @@ _loop_kw: 'loop';
 _if_kw: 'if';
 _else_kw: 'else';
 _new_kw: 'new';
+_default_kw: 'default';
+_break_kw: 'break';
+_continue_kw: 'continue';
+_return_kw: 'return';
+
 
 // Types:
 type:
@@ -152,11 +202,13 @@ _d32_t: 'd32';
 _str_t: 'str';
 _bool_t: 'bool'
 
+
 // Regex types:
 _integer: [0-9]+;
 _decimal: [0-9]* '.' [0-9]+;
 _name: [a-zA-Z_][a-zA-Z0-9_]*;
 _string: '"' ( ~["])* '"';
+
 
 // Symbols:
 _colon_sym: ':';
@@ -177,7 +229,6 @@ _mod_sym: '%';
 _not_sym: '!';
 _comma_sym: ',';
 _dot_sym: '.';
-
 
 
 // Misc:
