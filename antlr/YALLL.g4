@@ -33,7 +33,7 @@ declaration:
     function_dec
   | var_dec;
 
-function_dec: FUNCTION_KW ONERR_KW? NAME argument_list COLON_SYM type;
+function_dec: FUNCTION_KW ONERR_KW? NAME parameter_list COLON_SYM type;
 
 var_dec: type NAME;
 
@@ -42,16 +42,19 @@ var_dec: type NAME;
 definition:
     function_def
   | error_def
-  | var_def;
+  | var_def
+  | lazy_var_def;
 
-function_def: FUNCTION_KW NOERR_KW? NAME argument_list COLON_SYM type block;
+function_def: FUNCTION_KW NOERR_KW? NAME parameter_list COLON_SYM type block;
 
 error_def: LBRACK_SYM NAME COMMA_SYM STRING RBRACK_SYM;
 
 var_def: type NAME EQUAL_SYM operation;
 
+lazy_var_def: LAZY_KW var_def;
 
-argument_list: LPAREN_SYM (type NAME (COLON_SYM type NAME)*)? RPAREN_SYM;
+
+parameter_list: LPAREN_SYM (type NAME (COLON_SYM type NAME)*)? RPAREN_SYM;
 
 
 // Blocks:
@@ -145,9 +148,9 @@ BOOL_True: 'true';
 BOOL_FALSE: 'false';
 NULL_VALUE: 'null';
 
-function_call: NAME LPAREN_SYM parameter_list RPAREN_SYM;
+function_call: NAME LPAREN_SYM argument_list RPAREN_SYM;
 
-parameter_list: (operation (COMMA_SYM operation)*)?;
+argument_list: (operation (COMMA_SYM operation)*)?;
 
 
 // Keywords:
@@ -169,6 +172,7 @@ CONTINUE_KW: 'continue';
 RETURN_KW: 'return';
 PUBLIC_KW: 'public';
 PRIVATE_KW: 'private';
+LAZY_KW: 'lazy';
 
 
 // Types:
