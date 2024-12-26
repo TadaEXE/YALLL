@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "YALLLParser.h"
-#include "structures/variant.h"
 
 namespace yalll {
 
