@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include "../scoping/scope.h"
 #include "YALLLBaseVisitor.h"
 #include "YALLLParser.h"
 
@@ -16,6 +17,7 @@ namespace yallc {
 class YALLLVisitorImpl : public YALLLBaseVisitor {
  public:
   YALLLVisitorImpl();
+  ~YALLLVisitorImpl();
 
   std::any visitProgram(YALLLParser::ProgramContext* ctx) override;
 
@@ -27,13 +29,28 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
 
   // std::any visitStatement(YALLLParser::StatementContext* ctx) override;
 
-  // std::any visitExpression(YALLLParser::ExpressionContext* ctx) override;
+  std::any visitExpression(YALLLParser::ExpressionContext* ctx) override;
 
-  // std::any visitAssignment(YALLLParser::AssignmentContext* ctx) override;
+  // Declarations
+  std::any visitVar_dec(YALLLParser::Var_decContext* ctx) override;
 
+  // Definitions
+  std::any visitVar_def(YALLLParser::Var_defContext* ctx) override;
+
+  // Operations
   std::any visitOperation(YALLLParser::OperationContext* ctx) override;
-
   std::any visitReterr_op(YALLLParser::Reterr_opContext* ctx) override;
+  std::any visitAddition_op(YALLLParser::Addition_opContext* ctx) override;
+  std::any visitMultiplication_op(
+      YALLLParser::Multiplication_opContext* ctx) override;
+  // ==Primary_op==============================================================
+  std::any visitPrimary_op_high_precedence(
+      YALLLParser::Primary_op_high_precedenceContext* ctx) override;
+  std::any visitPrimary_op_fc(YALLLParser::Primary_op_fcContext* ctx) override;
+  std::any visitPrimary_op_term(
+      YALLLParser::Primary_op_termContext* ctx) override;
+  // ==========================================================================
+  std::any visitTerminal_op(YALLLParser::Terminal_opContext* ctx) override;
 
  private:
   std::unique_ptr<llvm::LLVMContext> context;
@@ -44,5 +61,8 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
 
   void trigger_function_return();
   void value_is_error();
+
+  std::unique_ptr<scoping::Scope> base_scope;
+  scoping::Scope* cur_scope;
 };
 }  // namespace yallc

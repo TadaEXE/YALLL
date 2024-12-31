@@ -108,37 +108,40 @@ control_structure:
 // Precedence climb:
 operation: reterr_op;
 
-reterr_op: RETERR_KW? iserr_op;
+reterr_op: op=RETERR_KW? val=iserr_op;
 
-iserr_op: ISERR_KW? onerr_op;
+iserr_op: op=ISERR_KW? val=onerr_op;
 
-onerr_op: bool_or_op (ONERR_KW onerr_block);
+onerr_op: lhs=bool_or_op (op=ONERR_KW rhs+=onerr_block)*;
 
-bool_or_op: bool_and_op (OR_SYM bool_and_op)*;
+bool_or_op: lhs=bool_and_op (op=OR_SYM rhs+=bool_and_op)*;
 
-bool_and_op: compare_op (AND_SYM compare_op)*;
+bool_and_op: lhs=compare_op (op=AND_SYM rhs+=compare_op)*;
 
-compare_op: addition_op (compare_sym addition_op)*;
+compare_op: lhs=addition_op (op+=compare_sym rhs+=addition_op)*;
 
-addition_op: multiplication_op ((PLUS_SYM | MINSU_SYM) multiplication_op)*;
+addition_op: lhs=multiplication_op (op+=(PLUS_SYM | MINSU_SYM) rhs+=multiplication_op)*;
 
-multiplication_op: unary_op ((MUL_SYM | DIV_SYM | MOD_SYM) unary_op)*;
+multiplication_op: lhs=unary_op (op+=(MUL_SYM | DIV_SYM | MOD_SYM) rhs+=unary_op)*;
 
-unary_op: (NOT_SYM | MINSU_SYM)? primary_op;
+unary_op: op=(NOT_SYM | MINSU_SYM)? val=primary_op;
 
 primary_op:
-    LPAREN_SYM operation RPAREN_SYM
-  | function_call
-  | terminal_op;
+    (LPAREN_SYM val=operation RPAREN_SYM) #primary_op_high_precedence
+  | val=function_call #primary_op_fc
+  | val=terminal_op #primary_op_term
+  ;
 
 terminal_op:
-    NAME
-  | INTEGER
-  | DECIMAL
-  | STRING
-  | NULL_VALUE
-  | BOOL_True
-  | BOOL_FALSE;
+  val = (
+      NAME
+    | INTEGER
+    | DECIMAL
+    | STRING
+    | NULL_VALUE
+    | BOOL_True
+    | BOOL_FALSE
+  );
 
 
 // Misc:
@@ -156,7 +159,7 @@ argument_list: (operation (COMMA_SYM operation)*)?;
 // Keywords:
 INTERFACE_KW: 'interface';
 CLASS_KW: 'class';
-FUNCTION_KW: 'function';
+FUNCTION_KW: 'func';
 RETERR_KW: 'reterr';
 ONERR_KW: 'onerr';
 ISERR_KW: 'iserr';

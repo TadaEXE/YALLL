@@ -3,7 +3,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 
-namespace yalll {
+namespace yallc {
 struct LLVMDataHolder {
 public:
   llvm::LLVMContext& context;

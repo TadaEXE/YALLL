@@ -1,0 +1,4 @@
+func () {
+  i32 test = ((11 + 10) * 2) * 3 / 2;
+  return test;
+}
