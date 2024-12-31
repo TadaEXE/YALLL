@@ -2,7 +2,6 @@
 
 #include <llvm/IR/Value.h>
 
-#include "../generator.h"
 
 namespace gen {
 
@@ -11,8 +10,8 @@ enum class OperationType {
   Substraction,
 };
 
-class Operation : Generator {
+class Operation {
  public:
-  virtual llvm::Value* generate() const override;
+
 };
 }  // namespace gen
