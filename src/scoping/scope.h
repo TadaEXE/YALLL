@@ -4,6 +4,9 @@
 
 #include <map>
 #include <string>
+
+#include "../value/value.h"
+
 namespace scoping {
 
 class Scope {
@@ -15,8 +18,8 @@ class Scope {
   Scope* push();
   Scope* pop();
 
-  void add_field(const std::string& name, llvm::Value* value);
-  llvm::Value* find_field(const std::string& name);
+  void add_field(const std::string& name, yalll::Value&& value);
+  yalll::Value* find_field(const std::string& name);
 
  private:
   Scope* parent;
@@ -24,6 +27,6 @@ class Scope {
 
   void delete_child();
 
-  std::map<std::string, llvm::Value*> field_map;
+  std::map<std::string, yalll::Value> field_map;
 };
 }  // namespace scoping

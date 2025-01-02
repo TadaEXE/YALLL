@@ -1,5 +1,6 @@
 #include "scope.h"
 
+#include <iostream>
 #include <string>
 #include <utility>
 
@@ -29,13 +30,13 @@ Scope* Scope::pop() {
   return parent;
 }
 
-void Scope::add_field(const std::string& name, llvm::Value* value) {
-  field_map.insert(std::pair<std::string, llvm::Value*>(name, value));
+void Scope::add_field(const std::string& name, yalll::Value&& value) {
+  field_map.insert(std::pair<std::string, yalll::Value>(name, value));
 }
 
-llvm::Value* Scope::find_field(const std::string& name) {
+yalll::Value* Scope::find_field(const std::string& name) {
   if (field_map.contains(name)) {
-    return field_map.at(name);
+    return &field_map.at(name);
   }
 
   if (parent == this) return nullptr;

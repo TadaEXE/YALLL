@@ -16,26 +16,34 @@
 #include <string>
 
 #include "../scoping/scope.h"
+#include "../value/value.h"
 #include "YALLLParser.h"
 
 namespace yallc {
 
-inline llvm::Value* to_value(
+inline void incompatible_types(typesafety::TypeInformation& lhs,
+                               typesafety::TypeInformation& rhs, size_t line) {
+  std::cout << "Incompatible types " << lhs.to_string() << " and "
+            << rhs.to_string() << " in line " << line << std::endl;
+}
+
+inline yalll::Value to_value(
     std::any any,
     std::source_location location = std::source_location::current()) {
   try {
-    return std::any_cast<llvm::Value*>(any);
+    return std::any_cast<yalll::Value>(any);
   } catch (const std::bad_any_cast& cast) {
     std::cout << location.file_name() << ":" << std::endl
               << location.function_name() << "@" << location.line()
-              << ": Faild to cast " << any.type().name() << " to llvm::Value* "
+              << ": Faild to cast " << any.type().name() << " to yalll::Value "
               << cast.what() << std::endl;
     throw cast;
   }
 }
 
-inline llvm::Value* to_value(llvm::Value* val) {
-  return static_cast<llvm::Value*>(val);
+inline yalll::Value to_value(llvm::Value* val,
+                             typesafety::TypeInformation type_info) {
+  return {static_cast<llvm::Value*>(val), type_info};
 }
 
 YALLLVisitorImpl::YALLLVisitorImpl() {
@@ -85,20 +93,38 @@ std::any YALLLVisitorImpl::visitExpression(
       if (ctx->children.size() == 2) {
         return to_value(builder->CreateRetVoid());
       }
-      return to_value(builder->CreateRet(to_value(visit(ctx->children.at(1)))));
+
+      yalll::Value value = to_value(visit(ctx->op));
+      (void)builder->CreateRet(value.llvm_val);
+
+      return std::any();
   }
 
   return visitChildren(ctx);
 }
 
 std::any YALLLVisitorImpl::visitVar_dec(YALLLParser::Var_decContext* ctx) {
-  cur_scope->add_field(ctx->children.at(1)->getText(), nullptr);
+  std::string name = ctx->name->getText();
+  size_t type = ctx->ty->getStart()->getType();
+  cur_scope->add_field(
+      name, yalll::Value(name, typesafety::TypeInformation::from_yalll_t(
+                                   type, *context)));
   return std::any();
 }
 
 std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
-  auto value = to_value(visit(ctx->children.at(3)));
-  cur_scope->add_field(ctx->children.at(1)->getText(), value);
+  std::string name = ctx->name->getText();
+  yalll::Value value = to_value(visit(ctx->val));
+  typesafety::TypeInformation type_info =
+      typesafety::TypeInformation::from_yalll_t(ctx->ty->getStart()->getType(),
+                                                *context);
+
+  if (type_info.is_compatible(value.type_info)) {
+    cur_scope->add_field(name, yalll::Value(name, value.llvm_val, type_info));
+  } else {
+    incompatible_types(type_info, value.type_info, ctx->getStart()->getLine());
+  }
+
   return std::any();
 }
 
@@ -115,17 +141,19 @@ std::any YALLLVisitorImpl::visitAddition_op(
     YALLLParser::Addition_opContext* ctx) {
   if (ctx->children.size() == 1) return visitChildren(ctx);
 
-  llvm::Value* lhs = to_value(visit(ctx->lhs));
-  llvm::Value* rhs;
+  yalll::Value lhs = to_value(visit(ctx->lhs));
+  yalll::Value rhs;
 
   for (auto i = 0; i < ctx->op.size(); ++i) {
     auto op = ctx->op.at(i)->getType();
     rhs = to_value(visit(ctx->rhs.at(i)));
 
     if (op == YALLLParser::PLUS_SYM) {
-      lhs = to_value(builder->CreateAdd(lhs, rhs));
+      lhs = yalll::Value(builder->CreateAdd(lhs.llvm_val, rhs.llvm_val),
+                         lhs.type_info);
     } else if (op == YALLLParser::MINSU_SYM) {
-      lhs = to_value(builder->CreateSub(lhs, rhs));
+      lhs = yalll::Value(builder->CreateSub(lhs.llvm_val, rhs.llvm_val),
+                         lhs.type_info);
     } else {
       std::cout << "Invalid operant in addition " << op << std::endl;
       break;
@@ -139,21 +167,40 @@ std::any YALLLVisitorImpl::visitMultiplication_op(
     YALLLParser::Multiplication_opContext* ctx) {
   if (ctx->children.size() == 1) return visitChildren(ctx);
 
-  llvm::Value* lhs = to_value(visit(ctx->lhs));
-  llvm::Value* rhs;
+  yalll::Value lhs = to_value(visit(ctx->lhs));
+  yalll::Value rhs;
 
   for (auto i = 0; i < ctx->op.size(); ++i) {
     auto op = ctx->op.at(i)->getType();
     rhs = to_value(visit(ctx->rhs.at(i)));
 
+    if (!lhs.type_info.is_compatible(rhs.type_info)) {
+      incompatible_types(lhs.type_info, rhs.type_info,
+                         ctx->rhs.at(i)->getStart()->getLine());
+      return lhs;
+    }
+
     if (op == YALLLParser::MUL_SYM) {
-      lhs = to_value(builder->CreateMul(lhs, rhs));
+      lhs = yalll::Value(builder->CreateMul(lhs.llvm_val, rhs.llvm_val),
+                         lhs.type_info);
     } else if (op == YALLLParser::DIV_SYM) {
-      lhs = to_value(builder->CreateSDiv(lhs, rhs));
+      if (lhs.type_info.is_signed()) {
+        lhs = yalll::Value(builder->CreateSDiv(lhs.llvm_val, rhs.llvm_val),
+                           lhs.type_info);
+      } else {
+        lhs = yalll::Value(builder->CreateUDiv(lhs.llvm_val, rhs.llvm_val),
+                           lhs.type_info);
+      }
     } else if (op == YALLLParser::MOD_SYM) {
-      lhs = to_value(builder->CreateSRem(lhs, rhs));
+      if (lhs.type_info.is_signed()) {
+        lhs = yalll::Value(builder->CreateSRem(lhs.llvm_val, rhs.llvm_val),
+                           lhs.type_info);
+      } else {
+        lhs = yalll::Value(builder->CreateURem(lhs.llvm_val, rhs.llvm_val),
+                           lhs.type_info);
+      }
     } else {
-      std::cout << "Invalid operant in addition " << op << std::endl;
+      std::cout << "Invalid operant in multiplication " << op << std::endl;
       break;
     }
   }
@@ -180,10 +227,19 @@ std::any YALLLVisitorImpl::visitTerminal_op(
     YALLLParser::Terminal_opContext* ctx) {
   switch (ctx->val->getType()) {
     case YALLLParser::INTEGER:
-      return to_value(builder->getInt32(std::stoi(ctx->val->getText())));
+      return yalll::Value(builder->getInt32(std::stoi(ctx->val->getText())),
+                          typesafety::TypeInformation::I32_T(*context));
 
-    case YALLLParser::NAME:
-      return to_value(cur_scope->find_field(ctx->val->getText()));
+    case YALLLParser::NAME: {
+      auto* value = cur_scope->find_field(ctx->val->getText());
+      if (value) {
+        return *value;
+      } else {
+        std::cout << "Undefined variable used. Using i32 0." << std::endl;
+        return yalll::Value(builder->getInt32(0),
+                            typesafety::TypeInformation::I32_T(*context));
+      }
+    }
 
     default:
       std::cout << "Unknown terminal type found " << ctx->val->getText()

@@ -1,6 +1,3 @@
-
-#define FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]] extern inline
-
 #include <ANTLRInputStream.h>
 #include <CommonTokenStream.h>
 

@@ -22,10 +22,10 @@ expression:
   | operation
   | BREAK_KW
   | CONTINUE_KW
-  | RETURN_KW operation?
+  | RETURN_KW op=operation?
 ) SEMICOLON_SYM;
 
-assignment: NAME EQUAL_SYM operation;
+assignment: name=NAME EQUAL_SYM op=operation;
 
 
 // Decs:
@@ -35,7 +35,7 @@ declaration:
 
 function_dec: FUNCTION_KW ONERR_KW? NAME parameter_list COLON_SYM type;
 
-var_dec: type NAME;
+var_dec: ty=type name=NAME;
 
 
 // Defs:
@@ -49,7 +49,7 @@ function_def: FUNCTION_KW NOERR_KW? NAME parameter_list COLON_SYM type block;
 
 error_def: LBRACK_SYM NAME COMMA_SYM STRING RBRACK_SYM;
 
-var_def: type NAME EQUAL_SYM operation;
+var_def: ty=type name=NAME EQUAL_SYM val=operation;
 
 lazy_var_def: LAZY_KW var_def;
 
@@ -86,23 +86,23 @@ control_structure:
     | for_loop
     | foreach_loop;
 
-  while_loop: LOOP_KW LPAREN_SYM operation RPAREN_SYM loop_body;
+  while_loop: LOOP_KW LPAREN_SYM cmp=operation RPAREN_SYM body=loop_body;
 
   for_loop: LOOP_KW LPAREN_SYM (definition | assignment)? SEMICOLON_SYM operation? SEMICOLON_SYM operation? RPAREN_SYM loop_body;
 
-  foreach_loop: LOOP_KW LPAREN_SYM declaration COLON_SYM operation RPAREN_SYM loop_body;
+  foreach_loop: LOOP_KW LPAREN_SYM dec=declaration COLON_SYM iter=operation RPAREN_SYM body=loop_body;
 
   loop_body: block;
 
 
   // If_else:
-  if_else: if else_if* else?;
+  if_else: if_segment=if else_if_segments+=else_if* else_segment=else?;
 
-  if: IF_KW LPAREN_SYM operation RBRACK_SYM block;
+  if: IF_KW LPAREN_SYM cmp=operation RBRACK_SYM body=block;
 
-  else_if: ELSE_KW LPAREN_SYM operation RBRACK_SYM block;
+  else_if: ELSE_KW LPAREN_SYM cmp=operation RBRACK_SYM body=block;
 
-  else: ELSE_KW block;
+  else: ELSE_KW body=block;
 
 
 // Precedence climb:
