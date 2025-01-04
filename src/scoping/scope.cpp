@@ -1,6 +1,5 @@
 #include "scope.h"
 
-#include <iostream>
 #include <string>
 #include <utility>
 
@@ -8,6 +7,7 @@ namespace scoping {
 
 Scope::~Scope() {
   if (child) {
+    child->delete_child();
     delete child;
   }
 }
@@ -19,6 +19,7 @@ Scope* Scope::push() {
 
 void Scope::delete_child() {
   if (child) {
+    child->delete_child();
     delete child;
   }
 }
