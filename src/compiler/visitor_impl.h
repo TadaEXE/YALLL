@@ -37,6 +37,12 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
   // Definitions
   std::any visitVar_def(YALLLParser::Var_defContext* ctx) override;
 
+  // If_Else
+  std::any visitIf_else(YALLLParser::If_elseContext* ctx) override;
+  std::any visitIf(YALLLParser::IfContext* ctx) override;
+  std::any visitElse_if(YALLLParser::Else_ifContext* ctx) override;
+  std::any visitElse(YALLLParser::ElseContext* ctx) override;
+
   // Operations
   std::any visitOperation(YALLLParser::OperationContext* ctx) override;
   std::any visitReterr_op(YALLLParser::Reterr_opContext* ctx) override;

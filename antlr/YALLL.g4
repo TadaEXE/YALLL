@@ -8,7 +8,7 @@ interface: INTERFACE_KW NAME interface_block;
 
 class: CLASS_KW NAME (size)? (COLON_SYM NAME)? class_block;
 
-entry_point: FUNCTION_KW LPAREN_SYM RPAREN_SYM block;
+entry_point: FUNCTION_KW LPAREN_SYM RPAREN_SYM COLON_SYM I32_T block;
 
 statement:
     expression
@@ -96,7 +96,7 @@ control_structure:
 
 
   // If_else:
-  if_else: if_segment=if else_if_segments+=else_if* else_segment=else?;
+  if_else: if_br=if else_if_brs+=else_if* else_br=else?;
 
   if: IF_KW LPAREN_SYM cmp=operation RBRACK_SYM body=block;
 

@@ -3,6 +3,7 @@
 #include <llvm/ADT/APInt.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
@@ -128,6 +129,10 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   return std::any();
 }
 
+std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
+
+}
+
 std::any YALLLVisitorImpl::visitOperation(YALLLParser::OperationContext* ctx) {
   return visitChildren(ctx);
 }
@@ -239,6 +244,12 @@ std::any YALLLVisitorImpl::visitTerminal_op(
         return yalll::Value(builder->getInt32(0),
                             typesafety::TypeInformation::I32_T(*context));
       }
+    }
+
+    case YALLLParser::DECIMAL: {
+      auto* value = static_cast<llvm::Value*>(llvm::ConstantFP::get(
+          *context, llvm::APFloat(std::stof(ctx->val->getText()))));
+      return yalll::Value(value, typesafety::TypeInformation::D32_T(*context));
     }
 
     default:
