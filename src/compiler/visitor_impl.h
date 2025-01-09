@@ -31,6 +31,8 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
 
   std::any visitExpression(YALLLParser::ExpressionContext* ctx) override;
 
+  std::any visitAssignment(YALLLParser::AssignmentContext* ctx) override;
+
   // Declarations
   std::any visitVar_dec(YALLLParser::Var_decContext* ctx) override;
 
@@ -46,9 +48,13 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
   // Operations
   std::any visitOperation(YALLLParser::OperationContext* ctx) override;
   std::any visitReterr_op(YALLLParser::Reterr_opContext* ctx) override;
+  std::any visitBool_or_op(YALLLParser::Bool_or_opContext* ctx) override;
+  std::any visitBool_and_op(YALLLParser::Bool_and_opContext* ctx) override;
+  std::any visitCompare_op(YALLLParser::Compare_opContext* ctx) override;
   std::any visitAddition_op(YALLLParser::Addition_opContext* ctx) override;
   std::any visitMultiplication_op(
       YALLLParser::Multiplication_opContext* ctx) override;
+  // std::any visitUnary_op(YALLLParser::Unary_opContext* ctx) override;
   // ==Primary_op==============================================================
   std::any visitPrimary_op_high_precedence(
       YALLLParser::Primary_op_high_precedenceContext* ctx) override;

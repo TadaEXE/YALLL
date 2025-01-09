@@ -9,7 +9,7 @@
 #include "compiler/visitor_impl.h"
 
 void load_test_prog() {
-  const char* path = "../../programs/floats.y";
+  const char* path = "../../programs/integer_calc.y";
   std::cout << "Loading: " << path << std::endl;
   
   std::ifstream stream(path);

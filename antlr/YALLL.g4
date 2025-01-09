@@ -139,7 +139,7 @@ terminal_op:
     | DECIMAL
     | STRING
     | NULL_VALUE
-    | BOOL_True
+    | BOOL_TRUE
     | BOOL_FALSE
   );
 
@@ -147,7 +147,7 @@ terminal_op:
 // Misc:
 size: LBRACK_SYM INTEGER RBRACK_SYM;
 
-BOOL_True: 'true';
+BOOL_TRUE: 'true';
 BOOL_FALSE: 'false';
 NULL_VALUE: 'null';
 
@@ -201,12 +201,16 @@ mut_t: NOT_SYM base_t;
     | D64_T
     | D32_T
     | STR_T
-    | BOOL_T;
+    | BOOL_T
+    | VOID_T
+    | TBD_T;
 
+ISYS_T: 'isys';
 I64_T: 'i64';
 I32_T: 'i32';
 I16_T: 'i16';
 I8_T: 'i8';
+USYS_T: 'usys';
 U64_T: 'u64';
 U32_T: 'u32';
 U16_T: 'u16';
@@ -215,6 +219,8 @@ D64_T: 'd64';
 D32_T: 'd32';
 STR_T: 'str';
 BOOL_T: 'bool';
+VOID_T: 'void';
+TBD_T: 'tbd';
 
 
 // Regex types:

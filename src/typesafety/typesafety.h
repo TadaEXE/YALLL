@@ -12,6 +12,10 @@
 
 namespace typesafety {
 
+constexpr size_t TBD_T_ID = 696969;
+constexpr size_t INTAUTO_T_ID = 42069;
+constexpr size_t DECAUTO_T_ID = 133769;
+
 class TypeInformation {
  public:
   TypeInformation() : llvm_t(), yalll_t() {}
@@ -19,11 +23,15 @@ class TypeInformation {
   TypeInformation& operator=(const TypeInformation& other);
   TypeInformation(TypeInformation&& other);
   TypeInformation& operator=(TypeInformation&& other);
+  bool operator>(TypeInformation& other);
+  bool operator<(TypeInformation& other);
+  bool operator>=(TypeInformation& other);
+  bool operator<=(TypeInformation& other);
+  bool operator==(TypeInformation& other);
 
   TypeInformation(llvm::Type* llvm_t, size_t yalll_t)
       : llvm_t(llvm_t), yalll_t(yalll_t) {}
 
-  static TypeInformation EMPTY() { return TypeInformation(); }
   static TypeInformation I8_T(llvm::LLVMContext& ctx) {
     return TypeInformation(llvm::Type::getInt8Ty(ctx), YALLLParser::I8_T);
   }
@@ -57,17 +65,33 @@ class TypeInformation {
   static TypeInformation BOOL_T(llvm::LLVMContext& ctx) {
     return TypeInformation(llvm::Type::getInt1Ty(ctx), YALLLParser::BOOL_T);
   }
+  static TypeInformation VOID_T(llvm::LLVMContext& ctx) {
+    return TypeInformation(llvm::Type::getVoidTy(ctx), YALLLParser::VOID_T);
+  }
+  static TypeInformation TBD_T(llvm::LLVMContext& ctx) {
+    return TypeInformation(llvm::Type::getVoidTy(ctx), YALLLParser::TBD_T);
+  }
+  static TypeInformation INTAUTO_T(llvm::LLVMContext& ctx) {
+    return TypeInformation(llvm::Type::getInt32Ty(ctx), INTAUTO_T_ID);
+  }
+  static TypeInformation DECAUTO_T(llvm::LLVMContext& ctx) {
+    return TypeInformation(llvm::Type::getFloatTy(ctx), DECAUTO_T_ID);
+  }
 
   static TypeInformation from_yalll_t(size_t yalll_t, llvm::LLVMContext& ctx);
 
-  bool is_compatible(TypeInformation& other);
+  TypeInformation& make_mutable();
+  TypeInformation& make_nullable();
 
-  bool is_signed();
-  bool is_nullable();
-  bool is_mutable();
+  // bool make_compatible(TypeInformation& other);
+
+  bool is_signed() const;
+  bool is_mutable() const;
+  bool is_nullable() const;
+  bool is_compatible(TypeInformation& other) const;
 
   llvm::Type* get_llvm_type() const;
-  size_t get_yalll_type() const;
+  size_t get_yalll_type() const { return yalll_t; }
 
   std::string to_string() const;
 
@@ -75,14 +99,17 @@ class TypeInformation {
   llvm::Type* llvm_t;
   size_t yalll_t;
 
+  bool immutalbe = true;
+  bool nullable = false;
+
   std::map<size_t, bool> yalll_t_signed_map = {
-      {YALLLParser::I8_T, true},   {YALLLParser::I16_T, true},
-      {YALLLParser::I32_T, true},  {YALLLParser::I64_T, true},
-      {YALLLParser::U8_T, false},  {YALLLParser::U16_T, false},
-      {YALLLParser::U32_T, false}, {YALLLParser::U64_T, false},
-      {YALLLParser::BOOL_T, true}, {YALLLParser::D32_T, true},
-      {YALLLParser::D64_T, true},
-  };
+      {YALLLParser::I8_T, true},    {YALLLParser::I16_T, true},
+      {YALLLParser::I32_T, true},   {YALLLParser::I64_T, true},
+      {YALLLParser::U8_T, false},   {YALLLParser::U16_T, false},
+      {YALLLParser::U32_T, false},  {YALLLParser::U64_T, false},
+      {YALLLParser::BOOL_T, false}, {YALLLParser::D32_T, true},
+      {YALLLParser::D64_T, true},   {YALLLParser::VOID_T, false}};
+
 };
 
 }  // namespace typesafety
