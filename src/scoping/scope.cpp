@@ -45,4 +45,8 @@ yalll::Value* Scope::find_field(const std::string& name) {
   return parent->find_field(name);
 }
 
+typesafety::TypeInformation& Scope::get_ret_type_info() {
+
+}
+
 }  // namespace scoping

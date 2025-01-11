@@ -14,6 +14,7 @@ Value::Value(const Value& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  builder = other.builder;
 }
 
 Value& Value::operator=(const Value& other) {
@@ -24,6 +25,7 @@ Value& Value::operator=(const Value& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  builder = other.builder;
 
   return *this;
 }
@@ -34,6 +36,7 @@ Value::Value(Value&& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  builder = other.builder;
 }
 
 Value& Value::operator=(Value&& other) {
@@ -42,6 +45,7 @@ Value& Value::operator=(Value&& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  builder = other.builder;
   return *this;
 }
 
@@ -55,7 +59,7 @@ std::string Value::to_string() {
       type_info.is_mutable(), type_info.is_nullable());
 }
 
-llvm::Value* Value::get_llvm_val(llvm::IRBuilder<>& builder) {
+llvm::Value* Value::get_llvm_val() {
   if (llvm_val) return llvm_val;
 
   if (type_info.get_yalll_type() != typesafety::INTAUTO_T_ID &&
@@ -64,44 +68,94 @@ llvm::Value* Value::get_llvm_val(llvm::IRBuilder<>& builder) {
     std::cout << "Converting: " << value_string << std::endl;
     switch (type_info.get_yalll_type()) {
       case YALLLParser::I8_T:
-        llvm_val = llvm::ConstantInt::getSigned(builder.getInt8Ty(),
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt8Ty(),
                                                 std::stoi(value_string));
         break;
       case YALLLParser::I16_T:
-        llvm_val = llvm::ConstantInt::getSigned(builder.getInt16Ty(),
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt16Ty(),
                                                 std::stoi(value_string));
         break;
       case YALLLParser::I32_T:
-        llvm_val = llvm::ConstantInt::getSigned(builder.getInt32Ty(),
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt32Ty(),
                                                 std::stol(value_string));
         break;
       case YALLLParser::I64_T:
-        llvm_val = llvm::ConstantInt::getSigned(builder.getInt64Ty(),
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt64Ty(),
                                                 std::stoll(value_string));
         break;
       case YALLLParser::U8_T:
-        llvm_val = builder.getInt8(std::stoul(value_string));
+        llvm_val = builder->getInt8(std::stoul(value_string));
         break;
       case YALLLParser::U16_T:
-        llvm_val = builder.getInt16(std::stoul(value_string));
+        llvm_val = builder->getInt16(std::stoul(value_string));
         break;
       case YALLLParser::U32_T:
-        llvm_val = builder.getInt32(std::stoull(value_string));
+        llvm_val = builder->getInt32(std::stoull(value_string));
         break;
       case YALLLParser::U64_T:
-        llvm_val = builder.getInt64(std::stoull(value_string));
+        llvm_val = builder->getInt64(std::stoull(value_string));
         break;
       case YALLLParser::D32_T:
         llvm_val = static_cast<llvm::Value*>(llvm::ConstantFP::get(
-            builder.getContext(), llvm::APFloat(std::stof(value_string))));
+            builder->getContext(), llvm::APFloat(std::stof(value_string))));
         break;
       case YALLLParser::D64_T:
         llvm_val = static_cast<llvm::Value*>(llvm::ConstantFP::get(
-            builder.getContext(), llvm::APFloat(std::stod(value_string))));
+            builder->getContext(), llvm::APFloat(std::stod(value_string))));
         break;
     }
   }
 
   return llvm_val;
 }
+
+llvm::Value* Value::llvm_cast(typesafety::TypeInformation& type_info) {
+  if (name.size() == 0) {
+    this->type_info = type_info;
+
+    switch (type_info.get_yalll_type()) {
+      case YALLLParser::I8_T:
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt8Ty(),
+                                                std::stoi(value_string));
+        break;
+      case YALLLParser::I16_T:
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt16Ty(),
+                                                std::stoi(value_string));
+        break;
+      case YALLLParser::I32_T:
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt32Ty(),
+                                                std::stol(value_string));
+        break;
+      case YALLLParser::I64_T:
+        llvm_val = llvm::ConstantInt::getSigned(builder->getInt64Ty(),
+                                                std::stoll(value_string));
+        break;
+      case YALLLParser::U8_T:
+        llvm_val = builder->getInt8(std::stoul(value_string));
+        break;
+      case YALLLParser::U16_T:
+        llvm_val = builder->getInt16(std::stoul(value_string));
+        break;
+      case YALLLParser::U32_T:
+        llvm_val = builder->getInt32(std::stoull(value_string));
+        break;
+      case YALLLParser::U64_T:
+        llvm_val = builder->getInt64(std::stoull(value_string));
+        break;
+      case YALLLParser::D32_T:
+        llvm_val = static_cast<llvm::Value*>(llvm::ConstantFP::get(
+            builder->getContext(), llvm::APFloat(std::stof(value_string))));
+        break;
+      case YALLLParser::D64_T:
+        llvm_val = static_cast<llvm::Value*>(llvm::ConstantFP::get(
+            builder->getContext(), llvm::APFloat(std::stod(value_string))));
+        break;
+    }
+
+    return llvm_val;
+  } else {
+    std::cout << "Real casting not supported yet" << std::endl;
+  }
+}
+
 }  // namespace yalll

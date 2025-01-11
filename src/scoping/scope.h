@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 
+#include "../typesafety/typesafety.h"
 #include "../value/value.h"
 
 namespace scoping {
@@ -20,6 +21,8 @@ class Scope {
 
   void add_field(const std::string& name, yalll::Value&& value);
   yalll::Value* find_field(const std::string& name);
+
+  typesafety::TypeInformation& get_ret_type_info();
 
  private:
   Scope* parent;

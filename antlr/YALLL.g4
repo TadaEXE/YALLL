@@ -22,10 +22,10 @@ expression:
   | operation
   | BREAK_KW
   | CONTINUE_KW
-  | RETURN_KW op=operation?
+  | RETURN_KW ret_val=operation?
 ) SEMICOLON_SYM;
 
-assignment: name=NAME EQUAL_SYM op=operation;
+assignment: name=NAME EQUAL_SYM val=operation;
 
 
 // Decs:

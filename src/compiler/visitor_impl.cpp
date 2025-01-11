@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "../operation/operation.h"
 #include "../scoping/scope.h"
 #include "../value/value.h"
 #include "YALLLParser.h"
@@ -63,10 +64,19 @@ inline yalll::Value to_value(
   }
 }
 
-// inline yalll::Value to_value(llvm::Value* val,
-//                              typesafety::TypeInformation type_info) {
-//   return {type_info, static_cast<llvm::Value*>(val), };
-// }
+inline yalll::Operation to_operation(
+    std::any any,
+    std::source_location location = std::source_location::current()) {
+  try {
+    return std::any_cast<yalll::Operation>(any);
+  } catch (const std::bad_any_cast& cast) {
+    std::cout << location.file_name() << ":" << std::endl
+              << location.function_name() << "a" << location.line()
+              << ": Failed to cast " << any.type().name()
+              << " to yalll::Operation " << cast.what() << std::endl;
+    throw cast;
+  }
+}
 
 YALLLVisitorImpl::YALLLVisitorImpl() {
   context = std::make_unique<llvm::LLVMContext>();
@@ -113,11 +123,14 @@ std::any YALLLVisitorImpl::visitExpression(
   switch (ctx->getStart()->getType()) {
     case YALLLParser::RETURN_KW:
       if (ctx->children.size() == 2) {
-        return to_value(builder->CreateRetVoid());
+        (void)builder->CreateRetVoid();
+        return std::any();
       }
 
-      yalll::Value value = to_value(visit(ctx->op));
-      (void)builder->CreateRet(value.get_llvm_val(*builder));
+      auto operation = to_operation(visit(ctx->ret_val));
+      // if (operation.resolve_with_type_info(cur_scope->get_ret_type_info()))
+      if (operation.resolve_without_type_info())
+        (void)builder->CreateRet(operation.generate_llvm_val());
 
       return std::any();
   }
@@ -130,6 +143,10 @@ std::any YALLLVisitorImpl::visitAssignment(
   auto* variable = cur_scope->find_field(ctx->name->getText());
 
   if (variable) {
+    auto operation = to_operation(visit(ctx->val));
+    if (operation.resolve_with_type_info(variable->type_info)) {
+      variable->llvm_val = operation.generate_llvm_val();
+    }
   } else {
     std::cout << "Undeclared variable " << ctx->name->getText()
               << " used in line " << ctx->name->getLine() << std::endl;
@@ -144,24 +161,22 @@ std::any YALLLVisitorImpl::visitVar_dec(YALLLParser::Var_decContext* ctx) {
   cur_scope->add_field(
       name,
       yalll::Value(typesafety::TypeInformation::from_yalll_t(type, *context),
-                   nullptr, ctx->name->getLine(), name));
+                   nullptr, *builder, ctx->name->getLine(), name));
   return std::any();
 }
 
 std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   std::string name = ctx->name->getText();
-  yalll::Value value = to_value(visit(ctx->val));
+  yalll::Operation operation = to_operation(visit(ctx->val));
   typesafety::TypeInformation type_info =
       typesafety::TypeInformation::from_yalll_t(ctx->ty->getStart()->getType(),
                                                 *context);
 
-  if (type_info.make_compatible(value.type_info)) {
+  if (operation.resolve_with_type_info(type_info)) {
     cur_scope->add_field(
-        name, yalll::Value(type_info, value.get_llvm_val(*builder), ctx->getStart()->getLine(), name));
-  } else {
-    incompatible_types(type_info, value.type_info, ctx->getStart()->getLine());
+        name, yalll::Value(type_info, operation.generate_llvm_val(), *builder,
+                           ctx->getStart()->getLine(), name));
   }
-
   return std::any();
 }
 
@@ -214,54 +229,34 @@ std::any YALLLVisitorImpl::visitBool_or_op(
     YALLLParser::Bool_or_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
 
-  yalll::Value lhs = to_value(visit(ctx->lhs));
-  auto bool_t = typesafety::TypeInformation::BOOL_T(*context);
-  if (!lhs.type_info.make_compatible(bool_t)) {
-    std::cout << "Non bool type used in boolean or operation" << std::endl;
-    incompatible_types(lhs.type_info, bool_t, ctx->lhs->getStart()->getLine());
-  }
-  yalll::Value rhs;
+  std::vector<yalll::Operation> operations;
+  std::vector<size_t> op_codes;
 
-  for (auto i = 0; i < ctx->rhs.size(); ++i) {
-    rhs = to_value(visit(ctx->rhs.at(i)));
-    if (!rhs.type_info.make_compatible(bool_t)) {
-      std::cout << "Non bool type used in boolean or operation" << std::endl;
-      incompatible_types(rhs.type_info, bool_t,
-                         ctx->rhs.at(i)->getStart()->getLine());
-    }
-    lhs = yalll::Value(lhs.type_info,
-                       builder->CreateOr(lhs.get_llvm_val(*builder),
-                                         rhs.get_llvm_val(*builder)), ctx->rhs.at(i)->getStart()->getLine());
+  operations.push_back(to_operation(visit(ctx->lhs)));
+
+  for (auto* rhs : ctx->rhs) {
+    operations.push_back(to_operation(visit(rhs)));
+    op_codes.push_back(ctx->op->getType());
   }
 
-  return lhs;
+  return yalll::Operation(operations, op_codes);
 }
 
 std::any YALLLVisitorImpl::visitBool_and_op(
     YALLLParser::Bool_and_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
 
-  yalll::Value lhs = to_value(visit(ctx->lhs));
-  auto bool_t = typesafety::TypeInformation::BOOL_T(*context);
-  if (!lhs.type_info.make_compatible(bool_t)) {
-    std::cout << "Non bool type used in boolean and operation" << std::endl;
-    incompatible_types(lhs.type_info, bool_t, ctx->lhs->getStart()->getLine());
-  }
-  yalll::Value rhs;
+  std::vector<yalll::Operation> operations;
+  std::vector<size_t> op_codes;
 
-  for (auto i = 0; i < ctx->rhs.size(); ++i) {
-    rhs = to_value(visit(ctx->rhs.at(i)));
-    if (!rhs.type_info.make_compatible(bool_t)) {
-      std::cout << "Non bool type used in boolean or operation" << std::endl;
-      incompatible_types(rhs.type_info, bool_t,
-                         ctx->rhs.at(i)->getStart()->getLine());
-    }
-    lhs = yalll::Value(lhs.type_info,
-                       builder->CreateAnd(lhs.get_llvm_val(*builder),
-                                          rhs.get_llvm_val(*builder)), ctx->rhs.at(i)->getStart()->getLine());
+  operations.push_back(to_operation(visit(ctx->lhs)));
+
+  for (auto* rhs : ctx->rhs) {
+    operations.push_back(to_operation(visit(rhs)));
+    op_codes.push_back(ctx->op->getType());
   }
 
-  return lhs;
+  return yalll::Operation(operations, op_codes);
 }
 
 std::any YALLLVisitorImpl::visitCompare_op(
@@ -273,92 +268,39 @@ std::any YALLLVisitorImpl::visitAddition_op(
     YALLLParser::Addition_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
 
-  yalll::Value lhs = to_value(visit(ctx->lhs));
-  std::vector<yalll::Value> rhs;
+  std::vector<yalll::Operation> operations;
+  std::vector<size_t> op_codes;
+
+  operations.push_back(to_operation(visit(ctx->lhs)));
 
   for (auto i = 0; i < ctx->op.size(); ++i) {
-    auto op = ctx->op.at(i)->getType();
-    rhs.push_back(to_value(visit(ctx->rhs.at(i))));
-
-    if (!lhs.type_info.make_compatible(rhs.at(i).type_info)) {
-      incompatible_types(lhs.type_info, rhs.at(i).type_info,
-                         ctx->rhs.at(i)->getStart()->getLine());
-    }
-
-    // if (op == YALLLParser::PLUS_SYM) {
-    //   lhs = yalll::Value(lhs.type_info,
-    //                      builder->CreateAdd(lhs.get_llvm_val(*builder),
-    //                                         rhs.get_llvm_val(*builder)));
-    // } else if (op == YALLLParser::MINSU_SYM) {
-    //   lhs = yalll::Value(lhs.type_info,
-    //                      builder->CreateSub(lhs.get_llvm_val(*builder),
-    //                                         rhs.get_llvm_val(*builder)));
-    // } else {
-    //   std::cout << "Invalid operant in addition " << op << std::endl;
-    //   break;
-    // }
+    operations.push_back(to_operation(visit(ctx->rhs.at(i))));
+    op_codes.push_back(ctx->op.at(i)->getType());
   }
 
-  return lhs;
+  return yalll::Operation(operations, op_codes);
 }
 
 std::any YALLLVisitorImpl::visitMultiplication_op(
     YALLLParser::Multiplication_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
-  std::cout << ":" << std::endl;
 
-  yalll::Value lhs = to_value(visit(ctx->lhs));
-  std::cout << lhs.to_string() << std::endl;
-  yalll::Value rhs;
+  std::vector<yalll::Operation> operations;
+  std::vector<size_t> op_codes;
+
+  operations.push_back(to_operation(visit(ctx->lhs)));
 
   for (auto i = 0; i < ctx->op.size(); ++i) {
-    auto op = ctx->op.at(i)->getType();
-    rhs = to_value(visit(ctx->rhs.at(i)));
-
-    if (!lhs.type_info.make_compatible(rhs.type_info)) {
-      incompatible_types(lhs.type_info, rhs.type_info,
-                         ctx->rhs.at(i)->getStart()->getLine());
-      return lhs;
-    }
-
-    if (op == YALLLParser::MUL_SYM) {
-      lhs = yalll::Value(lhs.type_info,
-                         builder->CreateMul(lhs.get_llvm_val(*builder),
-                                            rhs.get_llvm_val(*builder)), ctx->rhs.at(i)->getStart()->getLine());
-    } else if (op == YALLLParser::DIV_SYM) {
-      if (lhs.type_info.is_signed()) {
-        lhs = yalll::Value(lhs.type_info,
-                           builder->CreateSDiv(lhs.get_llvm_val(*builder),
-                                               rhs.get_llvm_val(*builder)), ctx->getStart()->getLine());
-      } else {
-        lhs = yalll::Value(lhs.type_info,
-                           builder->CreateUDiv(lhs.get_llvm_val(*builder),
-                                               rhs.get_llvm_val(*builder)), ctx->getStart()->getLine());
-      }
-    } else if (op == YALLLParser::MOD_SYM) {
-      if (lhs.type_info.is_signed()) {
-        lhs = yalll::Value(lhs.type_info,
-                           builder->CreateSRem(lhs.get_llvm_val(*builder),
-                                               rhs.get_llvm_val(*builder)), ctx->getStart()->getLine());
-      } else {
-        lhs = yalll::Value(lhs.type_info,
-                           builder->CreateURem(lhs.get_llvm_val(*builder),
-                                               rhs.get_llvm_val(*builder)), ctx->getStart()->getLine());
-      }
-    } else {
-      std::cout << "Invalid operant in multiplication " << op << std::endl;
-      break;
-    }
+    operations.push_back(to_operation(visit(ctx->rhs.at(i))));
+    op_codes.push_back(ctx->op.at(i)->getType());
   }
 
-  return lhs;
+  return yalll::Operation(operations, op_codes);
 }
 
 std::any YALLLVisitorImpl::visitPrimary_op_high_precedence(
     YALLLParser::Primary_op_high_precedenceContext* ctx) {
-  std::cout << "high" << std::endl;
-  auto tmp = to_value(visit(ctx->val));
-  std::cout << "high out" << std::endl;
+  auto tmp = to_operation(visit(ctx->val));
   return tmp;
 }
 
@@ -376,8 +318,9 @@ std::any YALLLVisitorImpl::visitTerminal_op(
     YALLLParser::Terminal_opContext* ctx) {
   switch (ctx->val->getType()) {
     case YALLLParser::INTEGER:
-      return yalll::Value(typesafety::TypeInformation::INTAUTO_T(*context),
-                          ctx->val->getText(), ctx->val->getLine());
+      return yalll::Operation(
+          yalll::Value(typesafety::TypeInformation::INTAUTO_T(*context),
+                       ctx->val->getText(), *builder, ctx->val->getLine()));
 
     case YALLLParser::NAME: {
       auto* value = cur_scope->find_field(ctx->val->getText());
@@ -386,25 +329,31 @@ std::any YALLLVisitorImpl::visitTerminal_op(
       } else {
         std::cout << "Undefined variable used " << ctx->val->getText()
                   << std::endl;
-        return yalll::Value(typesafety::TypeInformation::VOID_T(*context),
-                            llvm::PoisonValue::get(builder->getVoidTy()), ctx->val->getLine());
+        return yalll::Operation(
+            yalll::Value(typesafety::TypeInformation::VOID_T(*context),
+                         llvm::PoisonValue::get(builder->getVoidTy()), *builder,
+                         ctx->val->getLine()));
       }
     }
 
     case YALLLParser::DECIMAL:
-      return yalll::Value(typesafety::TypeInformation::D32_T(*context),
-                          ctx->val->getText(), ctx->val->getLine());
+      return yalll::Operation(
+          yalll::Value(typesafety::TypeInformation::DECAUTO_T(*context),
+                       ctx->val->getText(), *builder, ctx->val->getLine()));
 
     case YALLLParser::BOOL_TRUE:
-      return yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
-                          builder->getInt1(true), ctx->val->getLine());
+      return yalll::Operation(
+          yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
+                       builder->getInt1(true), *builder, ctx->val->getLine()));
 
     case YALLLParser::BOOL_FALSE:
-      return yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
-                          builder->getInt1(false), ctx->val->getLine());
+      return yalll::Operation(
+          yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
+                       builder->getInt1(false), *builder, ctx->val->getLine()));
 
     case YALLLParser::NULL_VALUE:
-      return yalll::Value::NULL_VALUE(*context, ctx->val->getLine());
+      return yalll::Operation(
+          yalll::Value::NULL_VALUE(*builder, ctx->val->getLine()));
 
     default:
       std::cout << "Unknown terminal type found " << ctx->val->getText()

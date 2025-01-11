@@ -1,4 +1,5 @@
 #include "typeresolver.h"
+#include <llvm/IR/LLVMContext.h>
 
 #include "YALLLParser.h"
 #include "typesafety.h"
@@ -10,7 +11,12 @@ inline void incompatible_types(typesafety::TypeInformation& lhs,
             << rhs.to_string() << " in line " << line << std::endl;
 }
 
-bool TypeResolver::resolve(yalll::Value& lhs, std::vector<yalll::Value>& rhs) {
+bool TypeResolver::try_resolve(std::vector<yalll::Value>& values) {
+  return try_resolve(values.at(0), values);
+}
+
+bool TypeResolver::try_resolve(yalll::Value& lhs,
+                               std::vector<yalll::Value>& rhs) {
   TypeInformation biggest_type = lhs.type_info;
 
   if (!is_strict_type(biggest_type)) {
@@ -44,6 +50,51 @@ bool TypeResolver::resolve(yalll::Value& lhs, std::vector<yalll::Value>& rhs) {
   return true;
 }
 
+bool TypeResolver::try_resolve_temps(yalll::Value& lhs, std::vector<yalll::Value>& rhs, llvm::LLVMContext& ctx) {
+  std::vector<yalll::Value*> temps = get_temp_vals(lhs, rhs);
+  
+  if (temps.size() == 0) return true;
+
+  if (contains_dec_temp(temps)) {
+    for (yalll::Value* temp : temps) {
+      if (temp->type_info.get_yalll_type() == INTAUTO_T_ID) {
+        temp->type_info = TypeInformation::DECAUTO_T(ctx);
+      }
+    }
+  }
+
+  if (auto* biggest_type = find_biggest_strict_type(lhs, rhs)) {
+    
+  } else {
+    return false;
+  }
+}
+
+bool TypeResolver::try_partial_resolve(yalll::Value& lhs,
+                                       std::vector<yalll::Value>& rhs) {
+  TypeInformation biggest_type = lhs.type_info;
+
+  if (!is_strict_type(biggest_type)) {
+    size_t line;
+    for (yalll::Value val : rhs) {
+      if (is_strict_type(val.type_info)) {
+        biggest_type = val.type_info;
+        line = val.get_line();
+        break;
+      }
+    }
+    if (biggest_type.get_yalll_type() == YALLLParser::TBD_T) {
+      return false;
+    } else if (!is_temp_type(biggest_type) &&
+               !biggest_type.is_compatible(lhs.type_info)) {
+      incompatible_types(lhs.type_info, biggest_type, line);
+      return false;
+    }
+  }
+
+
+}
+
 bool TypeResolver::is_strict_type(TypeInformation& type_info) {
   if (type_info.get_yalll_type() == YALLLParser::TBD_T ||
       type_info.get_yalll_type() == INTAUTO_T_ID ||
@@ -57,6 +108,7 @@ void TypeResolver::unsave_multi_cast(TypeInformation& type, yalll::Value& lhs,
                                      std::vector<yalll::Value>& rhs) {
   lhs.type_info = type;
   for (yalll::Value val : rhs) {
+    (void)val.llvm_cast(type);
     val.type_info = type;
   }
 }
