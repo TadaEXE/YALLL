@@ -78,7 +78,7 @@ inline yalll::Operation to_operation(
   }
 }
 
-YALLLVisitorImpl::YALLLVisitorImpl() {
+YALLLVisitorImpl::YALLLVisitorImpl(std::string out_path) : out_path(out_path) {
   context = std::make_unique<llvm::LLVMContext>();
   builder = std::make_unique<llvm::IRBuilder<>>(*context);
   module = std::make_unique<llvm::Module>("YALLL", *context);
@@ -93,7 +93,7 @@ std::any YALLLVisitorImpl::visitProgram(YALLLParser::ProgramContext* ctx) {
   auto res = visitChildren(ctx);
 
   std::error_code ec;
-  llvm::raw_fd_ostream llvm_out("../../output.ll", ec);
+  llvm::raw_fd_ostream llvm_out(out_path, ec);
   module->print(llvm_out, nullptr);
 
   return res;

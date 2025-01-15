@@ -16,7 +16,7 @@ namespace yallc {
 
 class YALLLVisitorImpl : public YALLLBaseVisitor {
  public:
-  YALLLVisitorImpl();
+  YALLLVisitorImpl(std::string out_path);
   ~YALLLVisitorImpl();
 
   std::any visitProgram(YALLLParser::ProgramContext* ctx) override;
@@ -76,5 +76,7 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
 
   std::unique_ptr<scoping::Scope> base_scope;
   scoping::Scope* cur_scope;
+
+  std::string out_path;
 };
 }  // namespace yallc
