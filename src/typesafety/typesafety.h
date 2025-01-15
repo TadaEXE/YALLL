@@ -12,16 +12,23 @@
 
 namespace typesafety {
 
-constexpr size_t TBD_T_ID = 696969;
 constexpr size_t INTAUTO_T_ID = 42069;
 constexpr size_t DECAUTO_T_ID = 133769;
 
 class TypeInformation {
  public:
-  TypeInformation() : llvm_t(), yalll_t() {}
-  TypeInformation(const TypeInformation& other);
+  TypeInformation() : llvm_t(), yalll_t(), immutalbe(true), nullable(false) {}
+  TypeInformation(const TypeInformation& other)
+      : llvm_t(other.llvm_t),
+        yalll_t(other.yalll_t),
+        immutalbe(other.immutalbe),
+        nullable(other.nullable) {}
   TypeInformation& operator=(const TypeInformation& other);
-  TypeInformation(TypeInformation&& other);
+  TypeInformation(TypeInformation&& other)
+      : llvm_t(other.llvm_t),
+        yalll_t(other.yalll_t),
+        immutalbe(other.immutalbe),
+        nullable(other.nullable) {}
   TypeInformation& operator=(TypeInformation&& other);
   bool operator>(TypeInformation& other);
   bool operator<(TypeInformation& other);
@@ -83,12 +90,11 @@ class TypeInformation {
   TypeInformation& make_mutable();
   TypeInformation& make_nullable();
 
-  // bool make_compatible(TypeInformation& other);
-
   bool is_signed() const;
   bool is_mutable() const;
   bool is_nullable() const;
   bool is_compatible(TypeInformation& other) const;
+  bool is_float_type() const;
 
   llvm::Type* get_llvm_type() const;
   size_t get_yalll_type() const { return yalll_t; }
@@ -99,8 +105,8 @@ class TypeInformation {
   llvm::Type* llvm_t;
   size_t yalll_t;
 
-  bool immutalbe = true;
-  bool nullable = false;
+  bool immutalbe;
+  bool nullable;
 
   std::map<size_t, bool> yalll_t_signed_map = {
       {YALLLParser::I8_T, true},    {YALLLParser::I16_T, true},
@@ -108,8 +114,9 @@ class TypeInformation {
       {YALLLParser::U8_T, false},   {YALLLParser::U16_T, false},
       {YALLLParser::U32_T, false},  {YALLLParser::U64_T, false},
       {YALLLParser::BOOL_T, false}, {YALLLParser::D32_T, true},
-      {YALLLParser::D64_T, true},   {YALLLParser::VOID_T, false}};
-
+      {YALLLParser::D64_T, true},   {YALLLParser::VOID_T, false},
+      {YALLLParser::USYS_T, false}, {YALLLParser::ISYS_T, true},
+      {INTAUTO_T_ID, true},         {DECAUTO_T_ID, true}};
 };
 
 }  // namespace typesafety

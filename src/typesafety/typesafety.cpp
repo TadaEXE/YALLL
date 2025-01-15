@@ -5,7 +5,6 @@
 #include <llvm/Support/Casting.h>
 
 #include <format>
-#include <iostream>
 
 #include "YALLLParser.h"
 #include "compatibilitymatrix.h"
@@ -13,17 +12,13 @@
 
 namespace typesafety {
 
-TypeInformation::TypeInformation(const TypeInformation& other)
-    : llvm_t(other.llvm_t), yalll_t(other.yalll_t) {}
-
-TypeInformation::TypeInformation(TypeInformation&& other)
-    : llvm_t(other.llvm_t), yalll_t(other.yalll_t) {}
-
 TypeInformation& TypeInformation::operator=(const TypeInformation& other) {
   if (this == &other) return *this;
 
   yalll_t = other.yalll_t;
   llvm_t = other.llvm_t;
+  nullable = other.nullable;
+  immutalbe = other.immutalbe;
 
   return *this;
 }
@@ -31,6 +26,8 @@ TypeInformation& TypeInformation::operator=(const TypeInformation& other) {
 TypeInformation& TypeInformation::operator=(TypeInformation&& other) {
   yalll_t = other.yalll_t;
   llvm_t = other.llvm_t;
+  nullable = other.nullable;
+  immutalbe = other.immutalbe;
 
   return *this;
 }
@@ -147,7 +144,12 @@ bool TypeInformation::is_nullable() const { return nullable; }
 bool TypeInformation::is_mutable() const { return !immutalbe; }
 
 bool TypeInformation::is_compatible(TypeInformation& other) const {
+  std::cout << to_string() << "<?>"<< other.to_string() << std::endl;
   return compatiblity_matrix.at(yalll_t).at(other.yalll_t);
+}
+
+bool TypeInformation::is_float_type() const {
+  return yalll_t == YALLLParser::D32_T || yalll_t == YALLLParser::D64_T;
 }
 
 std::string TypeInformation::to_string() const {
@@ -178,7 +180,7 @@ std::string TypeInformation::to_string() const {
       return "integer";
     case DECAUTO_T_ID:
       return "decimal";
-    case TBD_T_ID:
+    case YALLLParser::TBD_T:
       return "tbd";
 
     default:

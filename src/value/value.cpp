@@ -65,7 +65,7 @@ llvm::Value* Value::get_llvm_val() {
   if (type_info.get_yalll_type() != typesafety::INTAUTO_T_ID &&
       type_info.get_yalll_type() != YALLLParser::TBD_T &&
       type_info.get_yalll_type() != typesafety::DECAUTO_T_ID) {
-    std::cout << "Converting: " << value_string << std::endl;
+    std::cout << "Converting: " << value_string << " to " << type_info.to_string() << std::endl;
     switch (type_info.get_yalll_type()) {
       case YALLLParser::I8_T:
         llvm_val = llvm::ConstantInt::getSigned(builder->getInt8Ty(),
@@ -155,6 +155,7 @@ llvm::Value* Value::llvm_cast(typesafety::TypeInformation& type_info) {
     return llvm_val;
   } else {
     std::cout << "Real casting not supported yet" << std::endl;
+    return nullptr;
   }
 }
 
