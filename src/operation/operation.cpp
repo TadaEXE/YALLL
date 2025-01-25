@@ -12,8 +12,6 @@ namespace yalll {
 Operation& Operation::operator=(Operation&& other) {
   operations = other.operations;
   op_codes = other.op_codes;
-  terminal = other.terminal;
-  terminal_value = other.terminal_value;
 
   return *this;
 }
@@ -23,46 +21,37 @@ Operation& Operation::operator=(const Operation& other) {
 
   operations = other.operations;
   op_codes = other.op_codes;
-  terminal = other.terminal;
-  terminal_value = other.terminal_value;
 
   return *this;
 }
 
 Value Operation::generate_value(llvm::IRBuilder<>& builder) {
-  if (is_terminal()) return terminal_value;
+  if (operations.size() > 1) {
+    std::cout << "Invalid top level operation" << std::endl;
+  }
   return std::move(operations.at(0)->generate_value(builder));
+}
+
+std::vector<typesafety::TypeProposal> Operation::gather_and_resolve_proposals(
+    llvm::LLVMContext& ctx) {
+  std::vector<typesafety::TypeProposal> proposals;
+  for (auto op : operations) {
+    auto tmp = op->gather_and_resolve_proposals(ctx);
+    proposals.insert(proposals.end(), tmp.begin(), tmp.end());
+  }
+  return std::move(proposals);
 }
 
 bool Operation::resolve_with_type_info(typesafety::TypeInformation type_info,
                                        llvm::LLVMContext& ctx) {
-  auto terminals = get_terminals();
-
-  return typesafety::TypeResolver::try_resolve_to_type(terminals, ctx, type_info);
+  auto proposals = gather_and_resolve_proposals(ctx);
+  return typesafety::TypeResolver::try_resolve_to_type(proposals, ctx,
+                                                       type_info);
 }
 
 bool Operation::resolve_without_type_info(llvm::LLVMContext& ctx) {
-  auto terminals = get_terminals();
-  return typesafety::TypeResolver::try_resolve(terminals, ctx);
-}
-
-std::vector<yalll::Value*> Operation::get_terminals() {
-  if (is_terminal()) return std::vector<yalll::Value*>{&terminal_value};
-
-  std::vector<yalll::Value*> terminals;
-
-  for (auto i = 0; i < operations.size(); ++i)
-    if (operations.at(i)->is_terminal()) {
-      terminals.push_back(&operations.at(i)->terminal_value);
-    } else {
-      std::vector<yalll::Value*> sub_op_terminals =
-          operations.at(i)->get_terminals();
-      if (sub_op_terminals.size() > 0)
-        terminals.insert(terminals.end(), sub_op_terminals.begin(),
-                         sub_op_terminals.end());
-    }
-
-  return terminals;
+  auto proposals = gather_and_resolve_proposals(ctx);
+  return typesafety::TypeResolver::try_resolve(proposals, ctx);
 }
 
 }  // namespace yalll

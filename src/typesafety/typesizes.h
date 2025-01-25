@@ -1,7 +1,6 @@
 #pragma once
 
 #include "YALLLParser.h"
-#include "typeresolver.h"
 #include "typesafety.h"
 namespace typesafety {
 

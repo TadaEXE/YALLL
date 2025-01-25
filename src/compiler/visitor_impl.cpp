@@ -24,9 +24,12 @@
 #include <vector>
 
 #include "../operation/addoperation.h"
+#include "../operation/andoperation.h"
 #include "../operation/cmpoperation.h"
 #include "../operation/muloperation.h"
 #include "../operation/operation.h"
+#include "../operation/oroperation.h"
+#include "../operation/terminaloperation.h"
 #include "../scoping/scope.h"
 #include "../value/value.h"
 #include "YALLLParser.h"
@@ -78,11 +81,19 @@ inline std::shared_ptr<yalll::Operation> to_operation(
       return std::any_cast<std::shared_ptr<yalll::AddOperation>>(any);
     if (type == typeid(std::shared_ptr<yalll::MulOperation>).hash_code())
       return std::any_cast<std::shared_ptr<yalll::MulOperation>>(any);
+    if (type == typeid(std::shared_ptr<yalll::AndOperation>).hash_code())
+      return std::any_cast<std::shared_ptr<yalll::AndOperation>>(any);
+    if (type == typeid(std::shared_ptr<yalll::OrOperation>).hash_code())
+      return std::any_cast<std::shared_ptr<yalll::OrOperation>>(any);
+    if (type == typeid(std::shared_ptr<yalll::CmpOperation>).hash_code())
+      return std::any_cast<std::shared_ptr<yalll::CmpOperation>>(any);
+    if (type == typeid(std::shared_ptr<yalll::TerminalOperation>).hash_code())
+      return std::any_cast<std::shared_ptr<yalll::TerminalOperation>>(any);
 
     return std::any_cast<std::shared_ptr<yalll::Operation>>(any);
   } catch (const std::bad_any_cast& cast) {
     std::cout << location.file_name() << ":" << std::endl
-              << location.function_name() << "a" << location.line()
+              << location.function_name() << "@" << location.line() << std::endl
               << ": Failed to cast " << any.type().name()
               << " to std::shared_ptr<yalll::Operation> " << cast.what()
               << std::endl;
@@ -254,7 +265,7 @@ std::any YALLLVisitorImpl::visitBool_or_op(
     op_codes.push_back(ctx->op->getType());
   }
 
-  return std::make_shared<yalll::Operation>(operations, op_codes);
+  return std::make_shared<yalll::OrOperation>(operations, op_codes);
 }
 
 std::any YALLLVisitorImpl::visitBool_and_op(
@@ -271,12 +282,24 @@ std::any YALLLVisitorImpl::visitBool_and_op(
     op_codes.push_back(ctx->op->getType());
   }
 
-  return std::make_shared<yalll::Operation>(operations, op_codes);
+  return std::make_shared<yalll::AndOperation>(operations, op_codes);
 }
 
 std::any YALLLVisitorImpl::visitCompare_op(
     YALLLParser::Compare_opContext* ctx) {
-  return visitChildren(ctx);
+  if (ctx->rhs.size() == 0) return visit(ctx->lhs);
+
+  std::vector<std::shared_ptr<yalll::Operation>> operations;
+  std::vector<size_t> op_codes;
+
+  operations.push_back(to_operation(visit(ctx->lhs)));
+
+  for (auto i = 0; i < ctx->op.size(); ++i) {
+    operations.push_back(to_operation(visit(ctx->rhs.at(i))));
+    op_codes.push_back(ctx->op.at(i)->getStart()->getType());
+  }
+
+  return std::make_shared<yalll::CmpOperation>(operations, op_codes);
 }
 
 std::any YALLLVisitorImpl::visitAddition_op(
@@ -336,18 +359,18 @@ std::any YALLLVisitorImpl::visitTerminal_op(
   std::cout << ctx->getText() << std::endl;
   switch (ctx->val->getType()) {
     case YALLLParser::INTEGER:
-      return std::make_shared<yalll::Operation>(
+      return std::make_shared<yalll::TerminalOperation>(
           yalll::Value(typesafety::TypeInformation::INTAUTO_T(*context),
                        ctx->val->getText(), *builder, ctx->val->getLine()));
 
     case YALLLParser::NAME: {
       auto* value = cur_scope->find_field(ctx->val->getText());
       if (value) {
-        return std::make_shared<yalll::Operation>(*value);
+        return std::make_shared<yalll::TerminalOperation>(*value);
       } else {
         std::cout << "Undefined variable used " << ctx->val->getText()
                   << std::endl;
-        return std::make_shared<yalll::Operation>(
+        return std::make_shared<yalll::TerminalOperation>(
             yalll::Value(typesafety::TypeInformation::VOID_T(*context),
                          llvm::PoisonValue::get(builder->getVoidTy()), *builder,
                          ctx->val->getLine()));
@@ -355,22 +378,22 @@ std::any YALLLVisitorImpl::visitTerminal_op(
     }
 
     case YALLLParser::DECIMAL:
-      return std::make_shared<yalll::Operation>(
+      return std::make_shared<yalll::TerminalOperation>(
           yalll::Value(typesafety::TypeInformation::DECAUTO_T(*context),
                        ctx->val->getText(), *builder, ctx->val->getLine()));
 
     case YALLLParser::BOOL_TRUE:
-      return std::make_shared<yalll::Operation>(
+      return std::make_shared<yalll::TerminalOperation>(
           yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
                        builder->getInt1(true), *builder, ctx->val->getLine()));
 
     case YALLLParser::BOOL_FALSE:
-      return std::make_shared<yalll::Operation>(
+      return std::make_shared<yalll::TerminalOperation>(
           yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
                        builder->getInt1(false), *builder, ctx->val->getLine()));
 
     case YALLLParser::NULL_VALUE:
-      return std::make_shared<yalll::Operation>(
+      return std::make_shared<yalll::TerminalOperation>(
           yalll::Value::NULL_VALUE(*builder, ctx->val->getLine()));
 
     default:

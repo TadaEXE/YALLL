@@ -103,35 +103,6 @@ TypeInformation& TypeInformation::make_nullable() {
   return *this;
 }
 
-// bool TypeInformation::make_compatible(TypeInformation& other) {
-//   std::cout << this->to_string() << " <> " << other.to_string() << " -> ";
-//
-//   if (yalll_t == YALLLParser::TBD_T ^ other.yalll_t == YALLLParser::TBD_T) {
-//     if (yalll_t == TBD_T_ID) {
-//       *this = other;
-//     } else {
-//       other = *this;
-//     }
-//   }
-//   if (yalll_t == INTAUTO_T_ID ^ other.yalll_t == INTAUTO_T_ID) {
-//     if (yalll_t == INTAUTO_T_ID) {
-//       *this = other;
-//     } else {
-//       other = *this;
-//     }
-//   }
-//   if (yalll_t == DECAUTO_T_ID ^ other.yalll_t == DECAUTO_T_ID) {
-//     if (yalll_t == DECAUTO_T_ID) {
-//       *this = other;
-//     } else {
-//       other = *this;
-//     }
-//   }
-//   std::cout << this->to_string() << " <> " << other.to_string() << std::endl;
-//   return yalll_t == other.yalll_t &&
-//          llvm_t->getTypeID() == other.llvm_t->getTypeID();
-// }
-
 bool TypeInformation::is_signed() const {
   if (yalll_t_signed_map.contains(yalll_t)) {
     return yalll_t_signed_map.at(yalll_t);
@@ -144,8 +115,17 @@ bool TypeInformation::is_nullable() const { return nullable; }
 bool TypeInformation::is_mutable() const { return !immutalbe; }
 
 bool TypeInformation::is_compatible(TypeInformation& other) const {
-  std::cout << to_string() << "<?>"<< other.to_string() << std::endl;
   return compatiblity_matrix.at(yalll_t).at(other.yalll_t);
+}
+
+bool TypeInformation::is_compatible(size_t yalll_t) const {
+  return compatiblity_matrix.at(this->yalll_t).at(yalll_t);
+}
+
+bool TypeInformation::yalll_ts_compatible(size_t lhs, size_t rhs) {
+  if (compatiblity_matrix.contains(lhs) && compatiblity_matrix.at(lhs).contains(rhs))
+    return compatiblity_matrix.at(lhs).at(rhs);
+  return false;
 }
 
 bool TypeInformation::is_float_type() const {

@@ -4,58 +4,80 @@
 
 #include "YALLLParser.h"
 #include "typesafety.h"
+#include "typesizes.h"
 
 namespace typesafety {
-bool TypeResolver::try_resolve(std::vector<yalll::Value*>& values,
+bool TypeResolver::try_resolve(std::vector<TypeProposal>& values,
                                llvm::LLVMContext& ctx) {
   if (values.size() == 0) return true;
-  TypeInformation biggest_type = values.at(0)->type_info;
+  size_t biggest_type = values.at(0).yalll_type;
+  bool fixed_proposal_found = false;
 
   if (!is_strict_type(biggest_type)) {
-    size_t line;
-    for (auto* val : values) {
-      if (is_strict_type(val->type_info)) {
-        biggest_type = val->type_info;
-        line = val->get_line();
+    size_t line =
+        values.at(0).attached_value->get_line();  // if the biggest type is not
+                                                  // strict we know that there
+                                                  // has to be a value atteched
+    for (auto val : values) {
+      if (val.fixed) {
+        biggest_type = val.yalll_type;
+        fixed_proposal_found = true;
+        break;
+      } else if (is_strict_type(val.yalll_type)) {
+        biggest_type = val.yalll_type;
         break;
       }
     }
     if (!is_strict_type(biggest_type)) {
       if (is_intauto_type(biggest_type)) {
-        biggest_type = typesafety::TypeInformation::from_yalll_t(
-            static_cast<size_t>(TypeResolver::DefaultYalllTypes::INT), ctx);
+        biggest_type =
+            static_cast<size_t>(TypeResolver::DefaultYalllTypes::INT);
       } else {
-        biggest_type = typesafety::TypeInformation::from_yalll_t(
-            static_cast<size_t>(TypeResolver::DefaultYalllTypes::DEC), ctx);
+        biggest_type =
+            static_cast<size_t>(TypeResolver::DefaultYalllTypes::DEC);
       }
-    } else if (!values.at(0)->type_info.is_compatible(biggest_type)) {
-      incompatible_types(values.at(0)->type_info, biggest_type, line);
+    } else if (!values.at(0).attached_value->type_info.is_compatible(
+                   biggest_type)) {
+      auto tmp = TypeInformation::from_yalll_t(biggest_type, ctx);
+      incompatible_types(values.at(0).attached_value->type_info, tmp, line);
       return false;
     }
   }
 
-  for (auto* val : values) {
-    if (biggest_type.is_compatible(val->type_info)) {
-      if (val->type_info > biggest_type) {
-        biggest_type = val->type_info;
+  for (auto val : values) {
+    if (TypeInformation::yalll_ts_compatible(biggest_type, val.yalll_type)) {
+      if (!fixed_proposal_found &&
+          type_size.at(val.yalll_type) > type_size.at(biggest_type)) {
+        biggest_type = val.yalll_type;
       }
     } else {
-      incompatible_types(biggest_type, val->type_info, val->get_line());
+      auto tmp = TypeInformation::from_yalll_t(biggest_type, ctx);
+      incompatible_types(tmp, val.attached_value->type_info,
+                         val.attached_value->get_line());
       return false;
     }
   }
 
-  unsave_multi_cast(biggest_type, values);
+  auto tmp = TypeInformation::from_yalll_t(biggest_type, ctx);
+  unsave_multi_cast(tmp, values);
 
   return true;
 }
 
-bool TypeResolver::try_resolve_to_type(std::vector<yalll::Value*>& values, llvm::LLVMContext& ctx, TypeInformation& hint) {
+bool TypeResolver::try_resolve_to_type(std::vector<TypeProposal>& values,
+                                       llvm::LLVMContext& ctx,
+                                       TypeInformation& hint) {
   if (values.size() == 0) return true;
 
-  for (auto* val : values) {
-    if (!hint.is_compatible(val->type_info)) {
-      incompatible_types(val->type_info, hint, val->get_line());
+  for (auto val : values) {
+    if (val.fixed && val.yalll_type != hint.get_yalll_type()) {
+      auto tmp = TypeInformation::from_yalll_t(val.yalll_type, ctx);
+      incompatible_types(tmp, hint, 0);
+      return false;
+    }
+    if (!hint.is_compatible(val.yalll_type)) {
+      auto tmp = TypeInformation::from_yalll_t(val.yalll_type, ctx);
+      incompatible_types(tmp, hint, 0);
       return false;
     }
   }
@@ -64,23 +86,23 @@ bool TypeResolver::try_resolve_to_type(std::vector<yalll::Value*>& values, llvm:
   return true;
 }
 
-bool TypeResolver::is_strict_type(TypeInformation& type_info) {
-  if (type_info.get_yalll_type() == YALLLParser::TBD_T ||
-      type_info.get_yalll_type() == INTAUTO_T_ID ||
-      type_info.get_yalll_type() == DECAUTO_T_ID) {
+bool TypeResolver::is_strict_type(size_t yalll_t) {
+  if (yalll_t == YALLLParser::TBD_T || yalll_t == INTAUTO_T_ID ||
+      yalll_t == DECAUTO_T_ID) {
     return false;
   }
   return true;
 }
 
-bool TypeResolver::is_intauto_type(TypeInformation& type_info) {
-  return type_info.get_yalll_type() == typesafety::INTAUTO_T_ID;
+bool TypeResolver::is_intauto_type(size_t yalll_t) {
+  return yalll_t == typesafety::INTAUTO_T_ID;
 }
 
 void TypeResolver::unsave_multi_cast(TypeInformation& type_info,
-                                     std::vector<yalll::Value*>& values) {
-  for (auto* val : values) {
-    val->type_info = type_info;
+                                     std::vector<TypeProposal>& values) {
+  for (auto val : values) {
+    if (!val.fixed && val.attached_value)
+      val.attached_value->type_info = type_info;
   }
 }
 

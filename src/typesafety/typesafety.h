@@ -94,6 +94,8 @@ class TypeInformation {
   bool is_mutable() const;
   bool is_nullable() const;
   bool is_compatible(TypeInformation& other) const;
+  bool is_compatible(size_t yalll_t) const;
+  static bool yalll_ts_compatible(size_t lhs, size_t rhs);
   bool is_float_type() const;
 
   llvm::Type* get_llvm_type() const;
