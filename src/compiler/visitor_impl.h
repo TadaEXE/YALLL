@@ -31,6 +31,8 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
 
   std::any visitExpression(YALLLParser::ExpressionContext* ctx) override;
 
+  std::any visitBlock(YALLLParser::BlockContext* ctx) override;
+
   std::any visitAssignment(YALLLParser::AssignmentContext* ctx) override;
 
   // Declarations
@@ -74,8 +76,7 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
   void trigger_function_return();
   void value_is_error();
 
-  std::unique_ptr<scoping::Scope> base_scope;
-  scoping::Scope* cur_scope;
+  scoping::Scope cur_scope;
 
   std::string out_path;
 };

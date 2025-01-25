@@ -58,7 +58,7 @@ parameter_list: LPAREN_SYM (type NAME (COLON_SYM type NAME)*)? RPAREN_SYM;
 
 
 // Blocks:
-block: LCURL_SYM statement* RCURL_SYM;
+block: LCURL_SYM statements+=statement* RCURL_SYM;
 
 interface_block: LCURL_SYM function_dec* RCURL_SYM;
 
@@ -98,9 +98,9 @@ control_structure:
   // If_else:
   if_else: if_br=if else_if_brs+=else_if* else_br=else?;
 
-  if: IF_KW LPAREN_SYM cmp=operation RBRACK_SYM body=block;
+  if: IF_KW LPAREN_SYM cmp=operation RPAREN_SYM body=block;
 
-  else_if: ELSE_KW LPAREN_SYM cmp=operation RBRACK_SYM body=block;
+  else_if: ELSE_KW LPAREN_SYM cmp=operation RPAREN_SYM body=block;
 
   else: ELSE_KW body=block;
 

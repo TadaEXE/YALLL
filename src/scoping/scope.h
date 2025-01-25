@@ -2,34 +2,28 @@
 
 #include <llvm/IR/Value.h>
 
-#include <map>
+#include <unordered_map>
 #include <string>
+#include <vector>
 
-#include "../typesafety/typesafety.h"
 #include "../value/value.h"
 
 namespace scoping {
 
+struct ScopeData {
+  std::unordered_map<std::string, yalll::Value> field_map;
+};
+
 class Scope {
  public:
-  Scope() : parent(this) {}
-  explicit Scope(Scope* parent) : parent(parent) {}
-  ~Scope();
 
-  Scope* push();
-  Scope* pop();
+  void push();
+  void pop();
 
   void add_field(const std::string& name, yalll::Value&& value);
   yalll::Value* find_field(const std::string& name);
 
-  typesafety::TypeInformation& get_ret_type_info();
-
  private:
-  Scope* parent;
-  Scope* child;
-
-  void delete_child();
-
-  std::map<std::string, yalll::Value> field_map;
+  std::vector<ScopeData> scope_frames {ScopeData()};
 };
 }  // namespace scoping

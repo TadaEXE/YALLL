@@ -3,12 +3,14 @@
 #include <llvm/ADT/APInt.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetOptions.h>
 #include <tree/ParseTree.h>
 #include <tree/ParseTreeType.h>
 #include <tree/ParseTreeWalker.h>
@@ -105,9 +107,6 @@ YALLLVisitorImpl::YALLLVisitorImpl(std::string out_path) : out_path(out_path) {
   context = std::make_unique<llvm::LLVMContext>();
   builder = std::make_unique<llvm::IRBuilder<>>(*context);
   module = std::make_unique<llvm::Module>("YALLL", *context);
-
-  base_scope = std::make_unique<scoping::Scope>();
-  cur_scope = base_scope->push();
 }
 
 YALLLVisitorImpl::~YALLLVisitorImpl() {}
@@ -141,6 +140,11 @@ std::any YALLLVisitorImpl::visitEntry_point(
   return visitChildren(ctx);
 }
 
+// std::any YALLLVisitorImpl::visitStatement(YALLLParser::StatementContext* ctx)
+// {
+//
+// }
+
 std::any YALLLVisitorImpl::visitExpression(
     YALLLParser::ExpressionContext* ctx) {
   switch (ctx->getStart()->getType()) {
@@ -149,9 +153,9 @@ std::any YALLLVisitorImpl::visitExpression(
         (void)builder->CreateRetVoid();
         return std::any();
       }
-
+      std::cout << ctx->getText() << std::endl;
       auto operation = to_operation(visit(ctx->ret_val));
-      // if (operation.resolve_with_type_info(cur_scope->get_ret_type_info()))
+      // if (operation.resolve_with_type_info(cur_scope.get_ret_type_info()))
       if (operation->resolve_without_type_info(*context))
         (void)builder->CreateRet(
             operation->generate_value(*builder).get_llvm_val());
@@ -162,9 +166,19 @@ std::any YALLLVisitorImpl::visitExpression(
   return visitChildren(ctx);
 }
 
+std::any YALLLVisitorImpl::visitBlock(YALLLParser::BlockContext* ctx) {
+  cur_scope.push();
+  for (auto* statement : ctx->statements) {
+    std::cout << statement->getText() << std::endl;
+    visit(statement);
+  }
+  cur_scope.pop();
+  return std::any();
+}
+
 std::any YALLLVisitorImpl::visitAssignment(
     YALLLParser::AssignmentContext* ctx) {
-  auto* variable = cur_scope->find_field(ctx->name->getText());
+  auto* variable = cur_scope.find_field(ctx->name->getText());
 
   if (variable) {
     auto operation = to_operation(visit(ctx->val));
@@ -182,7 +196,7 @@ std::any YALLLVisitorImpl::visitAssignment(
 std::any YALLLVisitorImpl::visitVar_dec(YALLLParser::Var_decContext* ctx) {
   std::string name = ctx->name->getText();
   size_t type = ctx->ty->getStart()->getType();
-  cur_scope->add_field(
+  cur_scope.add_field(
       name,
       yalll::Value(typesafety::TypeInformation::from_yalll_t(type, *context),
                    nullptr, *builder, ctx->name->getLine(), name));
@@ -197,8 +211,7 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
                                                 *context);
 
   if (operation->resolve_with_type_info(type_info, *context)) {
-    auto t = operation->generate_value(*builder);
-    cur_scope->add_field(
+    cur_scope.add_field(
         name, yalll::Value(type_info,
                            operation->generate_value(*builder).get_llvm_val(),
                            *builder, ctx->getStart()->getLine(), name));
@@ -207,38 +220,74 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
 }
 
 std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
-  // cur_scope = cur_scope->push();
-  // auto if_cmp = to_value(visit(ctx->if_br->cmp));
-  // builder->Create
-  // cur_scope = cur_scope->pop();
-  //
-  // for (auto* else_if_br : ctx->else_if_brs) {
-  //   cur_scope = cur_scope->push();
-  //   visit(else_if_br);
-  //   cur_scope = cur_scope->pop();
-  // }
-  //
-  // if (ctx->else_br) {
-  //   cur_scope = cur_scope->push();
-  //   visit(ctx->else_br);
-  //   cur_scope = cur_scope->pop();
-  // }
-  std::cout << "Not implemented yet" << std::endl;
+  auto if_true = llvm::BasicBlock::Create(*context, "if_true",
+                                          module->getFunction("main"));
+  auto if_false = llvm::BasicBlock::Create(*context, "if_false",
+                                           module->getFunction("main"));
+  auto if_exit = llvm::BasicBlock::Create(*context, "if_exit",
+                                          module->getFunction("main"));
+
+  auto if_cmp = to_operation(visit(ctx->if_br->cmp));
+  if (if_cmp->resolve_with_type_info(
+          typesafety::TypeInformation::BOOL_T(*context), *context)) {
+    auto cmp_value = if_cmp->generate_value(*builder);
+    builder->CreateCondBr(cmp_value.get_llvm_val(), if_true, if_false);
+
+    builder->SetInsertPoint(if_true);
+    visit(ctx->if_br->body);
+    builder->CreateBr(if_exit);
+
+    builder->SetInsertPoint(if_false);
+    for (auto* else_if_br : ctx->else_if_brs) {
+      std::cout << else_if_br->cmp->getText() << std::endl;
+
+      auto else_if_true = llvm::BasicBlock::Create(*context, "else_if_true",
+                                                   module->getFunction("main"));
+      auto else_if_false = llvm::BasicBlock::Create(
+          *context, "else_if_false", module->getFunction("main"));
+
+      auto else_if_cmp = to_operation(visit(else_if_br->cmp));
+      if (else_if_cmp->resolve_with_type_info(
+              typesafety::TypeInformation::BOOL_T(*context), *context)) {
+        auto else_if_cmp_value = if_cmp->generate_value(*builder);
+        builder->CreateCondBr(else_if_cmp_value.get_llvm_val(), else_if_true,
+                              else_if_false);
+
+        builder->SetInsertPoint(else_if_true);
+        visit(else_if_br->body);
+        builder->CreateBr(if_exit);
+        builder->SetInsertPoint(else_if_false);
+      }
+    }
+
+    auto else_case = llvm::BasicBlock::Create(*context, "else_case",
+                                              module->getFunction("main"));
+    if (ctx->else_br) {
+      builder->CreateBr(else_case);
+
+      builder->SetInsertPoint(else_case);
+      visit(ctx->else_br->body);
+    }
+
+    if_exit->moveAfter(else_case);
+    builder->CreateBr(if_exit);
+    builder->SetInsertPoint(if_exit);
+  }
   return std::any();
 }
 
 std::any YALLLVisitorImpl::visitIf(YALLLParser::IfContext* ctx) {
-  std::cout << "Compiler error" << std::endl;
+  std::cout << "Compiler error if" << std::endl;
   return std::any();
 }
 
 std::any YALLLVisitorImpl::visitElse_if(YALLLParser::Else_ifContext* ctx) {
-  std::cout << "Compiler error" << std::endl;
+  std::cout << "Compiler error else if" << std::endl;
   return std::any();
 }
 
 std::any YALLLVisitorImpl::visitElse(YALLLParser::ElseContext* ctx) {
-  std::cout << "Compiler error" << std::endl;
+  std::cout << "Compiler error else" << std::endl;
   return std::any();
 }
 
@@ -364,7 +413,8 @@ std::any YALLLVisitorImpl::visitTerminal_op(
                        ctx->val->getText(), *builder, ctx->val->getLine()));
 
     case YALLLParser::NAME: {
-      auto* value = cur_scope->find_field(ctx->val->getText());
+      auto* value = cur_scope.find_field(ctx->val->getText());
+      std::cout << "Visiting terminal" << std::endl;
       if (value) {
         return std::make_shared<yalll::TerminalOperation>(*value);
       } else {

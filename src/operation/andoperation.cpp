@@ -2,6 +2,8 @@
 
 #include <llvm/IR/IRBuilder.h>
 
+#include "YALLLParser.h"
+
 namespace yalll {
 
 Value AndOperation::generate_value(llvm::IRBuilder<>& builder) {
@@ -15,5 +17,21 @@ Value AndOperation::generate_value(llvm::IRBuilder<>& builder) {
   }
 
   return std::move(lhs);
+}
+
+std::vector<typesafety::TypeProposal>
+AndOperation::gather_and_resolve_proposals(llvm::LLVMContext& ctx) {
+  std::vector<typesafety::TypeProposal> proposals;
+  for (auto op : operations) {
+    auto tmp = op->gather_and_resolve_proposals(ctx);
+    proposals.insert(proposals.end(), tmp.begin(), tmp.end());
+  }
+  auto bool_t = typesafety::TypeInformation::BOOL_T(ctx);
+  if (typesafety::TypeResolver::try_resolve_to_type(proposals, ctx, bool_t)) {
+    return std::move(std::vector<typesafety::TypeProposal>{
+        typesafety::TypeProposal{YALLLParser::BOOL_T, true, nullptr}});
+  } else {
+    return std::move(std::vector<typesafety::TypeProposal>{});
+  }
 }
 }  // namespace yalll
