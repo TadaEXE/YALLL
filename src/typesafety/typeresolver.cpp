@@ -7,13 +7,9 @@
 
 namespace typesafety {
 bool TypeResolver::try_resolve(std::vector<yalll::Value*>& values,
-                               llvm::LLVMContext& ctx, TypeInformation* hint) {
+                               llvm::LLVMContext& ctx) {
   if (values.size() == 0) return true;
   TypeInformation biggest_type = values.at(0)->type_info;
-  if (!hint_check(hint, biggest_type)) {
-    incompatible_types(*hint, biggest_type, values.at(0)->get_line());
-    return false;
-  }
 
   if (!is_strict_type(biggest_type)) {
     size_t line;
@@ -37,7 +33,6 @@ bool TypeResolver::try_resolve(std::vector<yalll::Value*>& values,
       return false;
     }
   }
-  if (!hint_check(hint, biggest_type)) return false;
 
   for (auto* val : values) {
     if (biggest_type.is_compatible(val->type_info)) {
@@ -50,8 +45,22 @@ bool TypeResolver::try_resolve(std::vector<yalll::Value*>& values,
     }
   }
 
-  if (!hint_check(hint, biggest_type)) return false;
   unsave_multi_cast(biggest_type, values);
+
+  return true;
+}
+
+bool TypeResolver::try_resolve_to_type(std::vector<yalll::Value*>& values, llvm::LLVMContext& ctx, TypeInformation& hint) {
+  if (values.size() == 0) return true;
+
+  for (auto* val : values) {
+    if (!hint.is_compatible(val->type_info)) {
+      incompatible_types(val->type_info, hint, val->get_line());
+      return false;
+    }
+  }
+
+  unsave_multi_cast(hint, values);
   return true;
 }
 

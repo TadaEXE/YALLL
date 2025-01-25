@@ -244,13 +244,13 @@ std::any YALLLVisitorImpl::visitBool_or_op(
     YALLLParser::Bool_or_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
 
-  std::vector<yalll::Operation> operations;
+  std::vector<std::shared_ptr<yalll::Operation>> operations;
   std::vector<size_t> op_codes;
 
-  operations.push_back(*to_operation(visit(ctx->lhs)));
+  operations.push_back(to_operation(visit(ctx->lhs)));
 
   for (auto* rhs : ctx->rhs) {
-    operations.push_back(*to_operation(visit(rhs)));
+    operations.push_back(to_operation(visit(rhs)));
     op_codes.push_back(ctx->op->getType());
   }
 
@@ -261,13 +261,13 @@ std::any YALLLVisitorImpl::visitBool_and_op(
     YALLLParser::Bool_and_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
 
-  std::vector<yalll::Operation> operations;
+  std::vector<std::shared_ptr<yalll::Operation>> operations;
   std::vector<size_t> op_codes;
 
-  operations.push_back(*to_operation(visit(ctx->lhs)));
+  operations.push_back(to_operation(visit(ctx->lhs)));
 
   for (auto* rhs : ctx->rhs) {
-    operations.push_back(*to_operation(visit(rhs)));
+    operations.push_back(to_operation(visit(rhs)));
     op_codes.push_back(ctx->op->getType());
   }
 
@@ -283,13 +283,13 @@ std::any YALLLVisitorImpl::visitAddition_op(
     YALLLParser::Addition_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
 
-  std::vector<yalll::Operation> operations;
+  std::vector<std::shared_ptr<yalll::Operation>> operations;
   std::vector<size_t> op_codes;
 
-  operations.push_back(*to_operation(visit(ctx->lhs)));
+  operations.push_back(to_operation(visit(ctx->lhs)));
 
   for (auto i = 0; i < ctx->op.size(); ++i) {
-    operations.push_back(*to_operation(visit(ctx->rhs.at(i))));
+    operations.push_back(to_operation(visit(ctx->rhs.at(i))));
     op_codes.push_back(ctx->op.at(i)->getType());
   }
 
@@ -300,13 +300,13 @@ std::any YALLLVisitorImpl::visitMultiplication_op(
     YALLLParser::Multiplication_opContext* ctx) {
   if (ctx->rhs.size() == 0) return visit(ctx->lhs);
 
-  std::vector<yalll::Operation> operations;
+  std::vector<std::shared_ptr<yalll::Operation>> operations;
   std::vector<size_t> op_codes;
 
-  operations.push_back(*to_operation(visit(ctx->lhs)));
+  operations.push_back(to_operation(visit(ctx->lhs)));
 
   for (auto i = 0; i < ctx->op.size(); ++i) {
-    operations.push_back(*to_operation(visit(ctx->rhs.at(i))));
+    operations.push_back(to_operation(visit(ctx->rhs.at(i))));
     op_codes.push_back(ctx->op.at(i)->getType());
   }
 
@@ -316,7 +316,9 @@ std::any YALLLVisitorImpl::visitMultiplication_op(
 std::any YALLLVisitorImpl::visitPrimary_op_high_precedence(
     YALLLParser::Primary_op_high_precedenceContext* ctx) {
   auto tmp = to_operation(visit(ctx->val));
-  return tmp;
+  return std::make_shared<yalll::Operation>(
+      std::vector<std::shared_ptr<yalll::Operation>>{tmp},
+      std::vector<size_t>{});
 }
 
 std::any YALLLVisitorImpl::visitPrimary_op_fc(

@@ -18,8 +18,12 @@ class Operation {
  public:
   explicit Operation(yalll::Value value)
       : terminal_value(value), terminal(true) {}
-  Operation(std::vector<Operation>& operations, std::vector<size_t>& op_codes)
+  Operation(std::vector<std::shared_ptr<Operation>> operations,
+            std::vector<size_t> op_codes)
       : operations(operations), op_codes(op_codes) {}
+  // Operation(std::vector<std::shared_ptr<Operation>>&& operations,
+  //           std::vector<size_t>&& op_codes)
+  //     : operations(operations), op_codes(op_codes) {}
   Operation(Operation&& other)
       : operations(other.operations),
         op_codes(other.op_codes),
@@ -34,7 +38,7 @@ class Operation {
   Operation& operator=(const Operation& other);
   virtual ~Operation() = default;
 
-  std::vector<Operation>& get_values() { return operations; }
+  std::vector<std::shared_ptr<Operation>>& get_values() { return operations; }
   std::vector<size_t>& get_ops() { return op_codes; }
   bool is_terminal() const { return terminal; }
 
@@ -47,7 +51,7 @@ class Operation {
  protected:
   std::vector<yalll::Value*> get_terminals();
 
-  std::vector<Operation> operations;
+  std::vector<std::shared_ptr<Operation>> operations;
   std::vector<size_t> op_codes;
 
   yalll::Value terminal_value;

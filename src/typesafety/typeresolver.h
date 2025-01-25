@@ -20,8 +20,9 @@ class TypeResolver {
   // Will leave all values with the same real type that is not tbd
   // returns false if not possible (won't touch values then)
   static bool try_resolve(std::vector<yalll::Value*>& values,
-                          llvm::LLVMContext& ctx,
-                          TypeInformation* hint = nullptr);
+                          llvm::LLVMContext& ctx);
+
+  static bool try_resolve_to_type(std::vector<yalll::Value*>& values, llvm::LLVMContext& ctx, TypeInformation& hint);
 
   enum class DefaultYalllTypes {
     INT = YALLLParser::I32_T,
