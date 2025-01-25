@@ -75,4 +75,35 @@ class Foo[1k] : ITest // the [1k] gives very instance of Foo 1 kibibytes of stac
         [error_b, "This is the b error"]
     }
 }
+
+
+// just an idea:
+class Human {
+  public {
+    func get_name() : str { return name; }
+    func get_addr() : str { return addr; }
+  }
+  private {
+    str name;
+    str addr;
+  }
+}
+
+class Artist {
+  public {
+    func get_name() : str { return name; }
+    func how_many_releases() : u32 { return releases; }
+  }
+
+  private {
+    str name;
+    u32 releases;
+  }
+}
+
+composition Performer(Human, Artist) {
+  assign get_legal_name() = Human::get_name();
+  assign get_artist_name() = Artist::get_name();
+  // how_many_releases doesn't need to be assigned because there is no name confilit
+}
 }
