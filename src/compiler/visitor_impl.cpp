@@ -137,7 +137,11 @@ std::any YALLLVisitorImpl::visitEntry_point(
   auto body = llvm::BasicBlock::Create(*context, "entry", main_fn);
   builder->SetInsertPoint(body);
 
-  return visitChildren(ctx);
+  visitChildren(ctx);
+
+  // ensure error exit if no return given by program
+  builder->CreateRet(llvm::ConstantInt::getSigned(builder->getInt32Ty(), -1));
+  return std::any();
 }
 
 // std::any YALLLVisitorImpl::visitStatement(YALLLParser::StatementContext* ctx)
