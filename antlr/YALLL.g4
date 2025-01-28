@@ -2,7 +2,7 @@ grammar YALLL;
 
 
 // General:
-program: (interface | class)* entry_point? (interface | class)* EOF;
+program: (interface | class | declaration | definition)* entry_point? (interface | class | declaration | definition)* EOF;
 
 interface: INTERFACE_KW NAME interface_block;
 
@@ -33,7 +33,7 @@ declaration:
     function_dec
   | var_dec;
 
-function_dec: FUNCTION_KW ONERR_KW? NAME parameter_list COLON_SYM type;
+function_dec: FUNCTION_KW NOERR_KW? NAME parameter_list COLON_SYM type;
 
 var_dec: ty=type name=NAME;
 
@@ -45,7 +45,7 @@ definition:
   | var_def
   | lazy_var_def;
 
-function_def: FUNCTION_KW NOERR_KW? NAME parameter_list COLON_SYM type block;
+function_def: FUNCTION_KW NOERR_KW? func_name=NAME parm_list=parameter_list COLON_SYM ret_type=type func_block=block;
 
 error_def: LBRACK_SYM NAME COMMA_SYM STRING RBRACK_SYM;
 
@@ -54,7 +54,7 @@ var_def: ty=type name=NAME EQUAL_SYM val=operation;
 lazy_var_def: LAZY_KW var_def;
 
 
-parameter_list: LPAREN_SYM (type NAME (COLON_SYM type NAME)*)? RPAREN_SYM;
+parameter_list: LPAREN_SYM (first_type=type first_name=NAME (COMMA_SYM nth_type+=type nth_name+=NAME)*)? RPAREN_SYM;
 
 
 // Blocks:

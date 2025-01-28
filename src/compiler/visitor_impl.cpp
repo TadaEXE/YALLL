@@ -223,6 +223,11 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   return std::any();
 }
 
+std::any YALLLVisitorImpl::visitFunction_def(YALLLParser::Function_defContext* ctx) {
+  std::string name = ctx->func_name->getText();
+
+}
+
 std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
   auto if_true = llvm::BasicBlock::Create(*context, "if_true",
                                           module->getFunction("main"));

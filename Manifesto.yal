@@ -32,7 +32,7 @@ class Foo[1k] : ITest // the [1k] gives very instance of Foo 1 kibibytes of stac
                 izza_err:
                     return 0;
                 default:
-                    return error;
+                    reterr error;
             }
 
             d32 bzz_val = bzz();
@@ -59,7 +59,7 @@ class Foo[1k] : ITest // the [1k] gives very instance of Foo 1 kibibytes of stac
 
         func this_returns_error_a() : i32
         {
-            return error_a;
+            reterr error_a;
         }
     }
 
