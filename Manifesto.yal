@@ -18,24 +18,25 @@ class Foo[1k] : ITest // the [1k] gives very instance of Foo 1 kibibytes of stac
 
         bool[10] bool_array = {false};
 
-        ?i8 this_is_null; // if (this_is_null) is false
-        i8 this_is_ub; // if (this_is_ub) is compile error
+        ?i8 this_might_be_error; // this can be either i8 or error value
 
         func fizz() : i32
         {
             Tazz tazz_obj = new Tazz(); // uses object memory to dynamically allocate an instance of Tazz
 
-            i32 buzz_val = reterr buzz(); // escalates the error if error
+            i32 buzz_val = reterr tazz_obj.buzz(); // escalates the error if error
 
-            u16 izz_val = izz() onerr // in place error handling
+            u16 izz_val = tazz_obj.izz() onerr // in place error handling
             {
-                izza_err:
-                    return 0;
+                Tazz::izza_err:
+                    return 0; // function will return 0
+                Tazz::bar_err:
+                    assign 1; // izz_val is assigned 1
                 default:
-                    reterr error;
+                    reterr error_a; // function returns error_a
             }
 
-            d32 bzz_val = bzz();
+            ?d32 bzz_val = tazz_obj.bzz();
             if (!iserr bzz_val)
             {
                 // do stuff if bzz_val was no error
@@ -66,7 +67,7 @@ class Foo[1k] : ITest // the [1k] gives very instance of Foo 1 kibibytes of stac
     private
     {
         !u16 mutable_uint = 10;
-        ?str nullable_string = null;
+        ?str errable_string = error_b;
     }
 
     error
