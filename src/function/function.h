@@ -13,6 +13,7 @@
 namespace yalll {
 
 class Function {
+ public:
   Function(std::string name, typesafety::TypeInformation return_type,
            std::vector<yalll::Value> parameter_list)
       : name(name), return_type(return_type), parameter_list(parameter_list) {}

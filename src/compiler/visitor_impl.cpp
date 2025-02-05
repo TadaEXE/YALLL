@@ -25,6 +25,7 @@
 #include <typeinfo>
 #include <vector>
 
+#include "../function/function.h"
 #include "../operation/addoperation.h"
 #include "../operation/andoperation.h"
 #include "../operation/cmpoperation.h"
@@ -230,9 +231,46 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   return std::any();
 }
 
-std::any YALLLVisitorImpl::visitFunction_def(YALLLParser::Function_defContext* ctx) {
+std::any YALLLVisitorImpl::visitFunction_def(
+    YALLLParser::Function_defContext* ctx) {
   std::string name = ctx->func_name->getText();
+  auto ret_type =
+      typesafety::TypeInformation::from_context_node(ctx->ret_type, *context);
+  auto params = std::any_cast<std::vector<yalll::Value>>(visit(ctx->parm_list));
 
+  cur_scope.push(name);
+  yalll::Function func(name, ret_type, params);
+  // delete later just for testing
+  for (auto val : params) {
+    cur_scope.add_field(val.name, std::move(val));
+  }
+  //
+  func.generate_function_sig(*module);
+
+  visit(ctx->func_block);
+  return std::any();
+}
+
+std::any YALLLVisitorImpl::visitParameter_list(
+    YALLLParser::Parameter_listContext* ctx) {
+  std::vector<yalll::Value> params;
+  if (ctx->first_type) {
+    auto type_info = typesafety::TypeInformation::from_context_node(
+        ctx->first_type, *context);
+    std::string name = ctx->first_name->getText();
+    params.push_back(yalll::Value(type_info, nullptr, *builder,
+                                  ctx->getStart()->getLine(), name));
+  }
+
+  for (auto i = 0; i < ctx->nth_type.size(); ++i) {
+    auto type_info = typesafety::TypeInformation::from_context_node(
+        ctx->nth_type.at(i), *context);
+    std::string name = ctx->nth_name.at(i)->getText();
+    params.push_back(yalll::Value(type_info, nullptr, *builder,
+                                  ctx->getStart()->getLine(), name));
+  }
+
+  return params;
 }
 
 std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
