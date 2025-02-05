@@ -180,14 +180,13 @@ LAZY_KW: 'lazy';
 
 // Types:
 type:
-    null_t
-  | mut_t
-  | base_t
-  | array_type;
- 
-array_type: base_t size;
-null_t: QUESETIONMARK_SYM base_t;
-mut_t: NOT_SYM base_t;
+(
+    errable=QUESETIONMARK_SYM mutable=NOT_SYM
+  | mutable=NOT_SYM errable=QUESETIONMARK_SYM
+  | mutable=NOT_SYM
+  | errable=QUESETIONMARK_SYM
+)? ty=base_t size?;
+
   // Base types:
   base_t:
       I64_T

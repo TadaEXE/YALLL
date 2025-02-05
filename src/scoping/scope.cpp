@@ -5,9 +5,15 @@
 
 namespace scoping {
 
-void Scope::push() {
+void Scope::push(std::string ctx_name) {
   std::cout << "Scope pushed" << std::endl;
   scope_frames.push_back(ScopeData());
+
+  if (ctx_name != "") {
+    scope_frames.back().ctx_name = (scope_frames.end() - 1)->ctx_name;
+  } else {
+    scope_frames.back().ctx_name = ctx_name;
+  }
 }
 
 void Scope::pop() {
@@ -32,5 +38,9 @@ yalll::Value* Scope::find_field(const std::string& name) {
   }
   std::cout << name << " does not exist" << std::endl;
   return nullptr;
+}
+
+std::string& Scope::get_scope_ctx_name() {
+  return scope_frames.back().ctx_name;
 }
 }  // namespace scoping

@@ -17,18 +17,18 @@ constexpr size_t DECAUTO_T_ID = 133769;
 
 class TypeInformation {
  public:
-  TypeInformation() : llvm_t(), yalll_t(), immutalbe(true), nullable(false) {}
+  TypeInformation() : llvm_t(), yalll_t(), immutalbe(true), errable(false) {}
   TypeInformation(const TypeInformation& other)
       : llvm_t(other.llvm_t),
         yalll_t(other.yalll_t),
         immutalbe(other.immutalbe),
-        nullable(other.nullable) {}
+        errable(other.errable) {}
   TypeInformation& operator=(const TypeInformation& other);
   TypeInformation(TypeInformation&& other)
       : llvm_t(other.llvm_t),
         yalll_t(other.yalll_t),
         immutalbe(other.immutalbe),
-        nullable(other.nullable) {}
+        errable(other.errable) {}
   TypeInformation& operator=(TypeInformation&& other);
   bool operator>(TypeInformation& other);
   bool operator<(TypeInformation& other);
@@ -87,12 +87,15 @@ class TypeInformation {
 
   static TypeInformation from_yalll_t(size_t yalll_t, llvm::LLVMContext& ctx);
 
+  static TypeInformation from_context_node(YALLLParser::TypeContext* node,
+                                           llvm::LLVMContext& ctx);
+
   TypeInformation& make_mutable();
-  TypeInformation& make_nullable();
+  TypeInformation& make_errable();
 
   bool is_signed() const;
   bool is_mutable() const;
-  bool is_nullable() const;
+  bool is_errable() const;
   bool is_compatible(TypeInformation& other) const;
   bool is_compatible(size_t yalll_t) const;
   static bool yalll_ts_compatible(size_t lhs, size_t rhs);
@@ -108,7 +111,7 @@ class TypeInformation {
   size_t yalll_t;
 
   bool immutalbe;
-  bool nullable;
+  bool errable;
 
   std::map<size_t, bool> yalll_t_signed_map = {
       {YALLLParser::I8_T, true},    {YALLLParser::I16_T, true},

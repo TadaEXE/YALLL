@@ -17,7 +17,7 @@ TypeInformation& TypeInformation::operator=(const TypeInformation& other) {
 
   yalll_t = other.yalll_t;
   llvm_t = other.llvm_t;
-  nullable = other.nullable;
+  errable = other.errable;
   immutalbe = other.immutalbe;
 
   return *this;
@@ -26,7 +26,7 @@ TypeInformation& TypeInformation::operator=(const TypeInformation& other) {
 TypeInformation& TypeInformation::operator=(TypeInformation&& other) {
   yalll_t = other.yalll_t;
   llvm_t = other.llvm_t;
-  nullable = other.nullable;
+  errable = other.errable;
   immutalbe = other.immutalbe;
 
   return *this;
@@ -93,13 +93,21 @@ TypeInformation TypeInformation::from_yalll_t(size_t yalll_t,
   }
 }
 
+TypeInformation TypeInformation::from_context_node(
+    YALLLParser::TypeContext* node, llvm::LLVMContext& ctx) {
+  auto type = from_yalll_t(node->ty->getStart()->getType(), ctx);
+  if (node->errable) type = type.make_errable();
+  if (node->mutable_) type = type.make_mutable();
+  return type;
+}
+
 TypeInformation& TypeInformation::make_mutable() {
   immutalbe = false;
   return *this;
 }
 
-TypeInformation& TypeInformation::make_nullable() {
-  nullable = true;
+TypeInformation& TypeInformation::make_errable() {
+  errable = true;
   return *this;
 }
 
@@ -110,7 +118,7 @@ bool TypeInformation::is_signed() const {
   return true;
 }
 
-bool TypeInformation::is_nullable() const { return nullable; }
+bool TypeInformation::is_errable() const { return errable; }
 
 bool TypeInformation::is_mutable() const { return !immutalbe; }
 
@@ -123,7 +131,8 @@ bool TypeInformation::is_compatible(size_t yalll_t) const {
 }
 
 bool TypeInformation::yalll_ts_compatible(size_t lhs, size_t rhs) {
-  if (compatiblity_matrix.contains(lhs) && compatiblity_matrix.at(lhs).contains(rhs))
+  if (compatiblity_matrix.contains(lhs) &&
+      compatiblity_matrix.at(lhs).contains(rhs))
     return compatiblity_matrix.at(lhs).at(rhs);
   return false;
 }

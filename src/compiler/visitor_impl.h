@@ -20,20 +20,14 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
   ~YALLLVisitorImpl();
 
   std::any visitProgram(YALLLParser::ProgramContext* ctx) override;
-
   std::any visitInterface(YALLLParser::InterfaceContext* ctx) override;
-
   std::any visitClass(YALLLParser::ClassContext* ctx) override;
-
   std::any visitEntry_point(YALLLParser::Entry_pointContext* ctx) override;
-
   // std::any visitStatement(YALLLParser::StatementContext* ctx) override;
-
   std::any visitExpression(YALLLParser::ExpressionContext* ctx) override;
-
   std::any visitBlock(YALLLParser::BlockContext* ctx) override;
-
   std::any visitAssignment(YALLLParser::AssignmentContext* ctx) override;
+  std::any visitParameter_list(YALLLParser::Parameter_listContext* ctx) override;
 
   // Declarations
   std::any visitVar_dec(YALLLParser::Var_decContext* ctx) override;

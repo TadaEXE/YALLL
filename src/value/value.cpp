@@ -54,9 +54,9 @@ std::string Value::to_string() {
   llvm::raw_string_ostream rso(llvm_val_str);
   llvm_val->print(rso);
   return std::format(
-      "Name[{}] Type[{}] Value[{}] StringValue[{}] Mutable[{}] Nullable[{}]",
+      "Name[{}] Type[{}] Value[{}] StringValue[{}] Mutable[{}] Errable[{}]",
       name, type_info.to_string(), rso.str(), value_string,
-      type_info.is_mutable(), type_info.is_nullable());
+      type_info.is_mutable(), type_info.is_errable());
 }
 
 llvm::Value* Value::get_llvm_val() {

@@ -131,6 +131,7 @@ std::any YALLLVisitorImpl::visitClass(YALLLParser::ClassContext* ctx) {
 
 std::any YALLLVisitorImpl::visitEntry_point(
     YALLLParser::Entry_pointContext* ctx) {
+  cur_scope.push("main");
   auto prototype = llvm::FunctionType::get(builder->getInt32Ty(), false);
   auto main_fn = llvm::Function::Create(
       prototype, llvm::Function::ExternalLinkage, "main", module.get());
@@ -185,6 +186,12 @@ std::any YALLLVisitorImpl::visitAssignment(
   auto* variable = cur_scope.find_field(ctx->name->getText());
 
   if (variable) {
+    if (!variable->type_info.is_mutable() && variable->llvm_val) {
+      std::cout << "Trying to reassign immutable value " << ctx->name->getText()
+                << " in line " << ctx->name->getLine() << std::endl;
+      return std::any();
+    }
+
     auto operation = to_operation(visit(ctx->val));
     if (operation->resolve_with_type_info(variable->type_info, *context)) {
       variable->llvm_val = operation->generate_value(*builder).get_llvm_val();
@@ -199,20 +206,20 @@ std::any YALLLVisitorImpl::visitAssignment(
 
 std::any YALLLVisitorImpl::visitVar_dec(YALLLParser::Var_decContext* ctx) {
   std::string name = ctx->name->getText();
-  size_t type = ctx->ty->getStart()->getType();
-  cur_scope.add_field(
-      name,
-      yalll::Value(typesafety::TypeInformation::from_yalll_t(type, *context),
-                   nullptr, *builder, ctx->name->getLine(), name));
+  auto type_info =
+      typesafety::TypeInformation::from_context_node(ctx->ty, *context);
+
+  cur_scope.add_field(name, yalll::Value(type_info, nullptr, *builder,
+                                         ctx->name->getLine(), name));
   return std::any();
 }
 
 std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   std::string name = ctx->name->getText();
   auto operation = to_operation(visit(ctx->val));
-  typesafety::TypeInformation type_info =
-      typesafety::TypeInformation::from_yalll_t(ctx->ty->getStart()->getType(),
-                                                *context);
+
+  auto type_info =
+      typesafety::TypeInformation::from_context_node(ctx->ty, *context);
 
   if (operation->resolve_with_type_info(type_info, *context)) {
     cur_scope.add_field(
@@ -229,12 +236,13 @@ std::any YALLLVisitorImpl::visitFunction_def(YALLLParser::Function_defContext* c
 }
 
 std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
-  auto if_true = llvm::BasicBlock::Create(*context, "if_true",
-                                          module->getFunction("main"));
-  auto if_false = llvm::BasicBlock::Create(*context, "if_false",
-                                           module->getFunction("main"));
-  auto if_exit = llvm::BasicBlock::Create(*context, "if_exit",
-                                          module->getFunction("main"));
+  auto if_true = llvm::BasicBlock::Create(
+      *context, "if_true", module->getFunction(cur_scope.get_scope_ctx_name()));
+  auto if_false = llvm::BasicBlock::Create(
+      *context, "if_false",
+      module->getFunction(cur_scope.get_scope_ctx_name()));
+  auto if_exit = llvm::BasicBlock::Create(
+      *context, "if_exit", module->getFunction(cur_scope.get_scope_ctx_name()));
 
   auto if_cmp = to_operation(visit(ctx->if_br->cmp));
   if (if_cmp->resolve_with_type_info(
