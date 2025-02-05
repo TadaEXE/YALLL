@@ -21,7 +21,7 @@ class Function {
 
  private:
   std::vector<llvm::Type*> param_list_to_type_list();
-  
+
   std::string name;
   typesafety::TypeInformation return_type;
   std::vector<yalll::Value> parameter_list;

@@ -258,7 +258,7 @@ std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
       auto else_if_cmp = to_operation(visit(else_if_br->cmp));
       if (else_if_cmp->resolve_with_type_info(
               typesafety::TypeInformation::BOOL_T(*context), *context)) {
-        auto else_if_cmp_value = if_cmp->generate_value(*builder);
+        auto else_if_cmp_value = else_if_cmp->generate_value(*builder);
         builder->CreateCondBr(else_if_cmp_value.get_llvm_val(), else_if_true,
                               else_if_false);
 
