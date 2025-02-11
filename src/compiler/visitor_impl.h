@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include "../import/import.h"
 #include "../scoping/scope.h"
 #include "YALLLBaseVisitor.h"
 #include "YALLLParser.h"
@@ -62,11 +63,9 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
   std::any visitTerminal_op(YALLLParser::Terminal_opContext* ctx) override;
 
  private:
-  std::unique_ptr<llvm::LLVMContext> context;
-  std::unique_ptr<llvm::IRBuilder<>> builder;
+  yalll::Import<llvm::LLVMContext> context;
+  yalll::Import<llvm::IRBuilder<>> builder;
   std::unique_ptr<llvm::Module> module;
-
-  // std::unique_ptr<IRGenerator> generator;
 
   void trigger_function_return();
   void value_is_error();

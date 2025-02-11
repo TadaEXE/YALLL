@@ -25,33 +25,31 @@ Operation& Operation::operator=(const Operation& other) {
   return *this;
 }
 
-Value Operation::generate_value(llvm::IRBuilder<>& builder) {
+Value Operation::generate_value() {
   if (operations.size() > 1) {
     std::cout << "Invalid top level operation" << std::endl;
   }
-  return std::move(operations.at(0)->generate_value(builder));
+  return std::move(operations.at(0)->generate_value());
 }
 
-std::vector<typesafety::TypeProposal> Operation::gather_and_resolve_proposals(
-    llvm::LLVMContext& ctx) {
+std::vector<typesafety::TypeProposal>
+Operation::gather_and_resolve_proposals() {
   std::vector<typesafety::TypeProposal> proposals;
   for (auto op : operations) {
-    auto tmp = op->gather_and_resolve_proposals(ctx);
+    auto tmp = op->gather_and_resolve_proposals();
     proposals.insert(proposals.end(), tmp.begin(), tmp.end());
   }
   return std::move(proposals);
 }
 
-bool Operation::resolve_with_type_info(typesafety::TypeInformation type_info,
-                                       llvm::LLVMContext& ctx) {
-  auto proposals = gather_and_resolve_proposals(ctx);
-  return typesafety::TypeResolver::try_resolve_to_type(proposals, ctx,
-                                                       type_info);
+bool Operation::resolve_with_type_info(typesafety::TypeInformation type_info) {
+  auto proposals = gather_and_resolve_proposals();
+  return typesafety::TypeResolver::try_resolve_to_type(proposals, type_info);
 }
 
-bool Operation::resolve_without_type_info(llvm::LLVMContext& ctx) {
-  auto proposals = gather_and_resolve_proposals(ctx);
-  return typesafety::TypeResolver::try_resolve(proposals, ctx);
+bool Operation::resolve_without_type_info() {
+  auto proposals = gather_and_resolve_proposals();
+  return typesafety::TypeResolver::try_resolve(proposals);
 }
 
 }  // namespace yalll

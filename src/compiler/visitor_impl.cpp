@@ -15,7 +15,6 @@
 #include <tree/ParseTreeType.h>
 #include <tree/ParseTreeWalker.h>
 
-#include <algorithm>
 #include <any>
 #include <iostream>
 #include <memory>
@@ -105,8 +104,7 @@ inline std::shared_ptr<yalll::Operation> to_operation(
 }
 
 YALLLVisitorImpl::YALLLVisitorImpl(std::string out_path) : out_path(out_path) {
-  context = std::make_unique<llvm::LLVMContext>();
-  builder = std::make_unique<llvm::IRBuilder<>>(*context);
+  yalll::Import<llvm::LLVMContext> context;
   module = std::make_unique<llvm::Module>("YALLL", *context);
 }
 
@@ -162,9 +160,8 @@ std::any YALLLVisitorImpl::visitExpression(
       std::cout << ctx->getText() << std::endl;
       auto operation = to_operation(visit(ctx->ret_val));
       // if (operation.resolve_with_type_info(cur_scope.get_ret_type_info()))
-      if (operation->resolve_without_type_info(*context))
-        (void)builder->CreateRet(
-            operation->generate_value(*builder).get_llvm_val());
+      if (operation->resolve_without_type_info())
+        (void)builder->CreateRet(operation->generate_value().get_llvm_val());
 
       return std::any();
   }
@@ -194,8 +191,8 @@ std::any YALLLVisitorImpl::visitAssignment(
     }
 
     auto operation = to_operation(visit(ctx->val));
-    if (operation->resolve_with_type_info(variable->type_info, *context)) {
-      variable->llvm_val = operation->generate_value(*builder).get_llvm_val();
+    if (operation->resolve_with_type_info(variable->type_info)) {
+      variable->llvm_val = operation->generate_value().get_llvm_val();
     }
   } else {
     std::cout << "Undeclared variable " << ctx->name->getText()
@@ -207,11 +204,10 @@ std::any YALLLVisitorImpl::visitAssignment(
 
 std::any YALLLVisitorImpl::visitVar_dec(YALLLParser::Var_decContext* ctx) {
   std::string name = ctx->name->getText();
-  auto type_info =
-      typesafety::TypeInformation::from_context_node(ctx->ty, *context);
+  auto type_info = typesafety::TypeInformation::from_context_node(ctx->ty);
 
-  cur_scope.add_field(name, yalll::Value(type_info, nullptr, *builder,
-                                         ctx->name->getLine(), name));
+  cur_scope.add_field(
+      name, yalll::Value(type_info, nullptr, ctx->name->getLine(), name));
   return std::any();
 }
 
@@ -219,14 +215,13 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   std::string name = ctx->name->getText();
   auto operation = to_operation(visit(ctx->val));
 
-  auto type_info =
-      typesafety::TypeInformation::from_context_node(ctx->ty, *context);
+  auto type_info = typesafety::TypeInformation::from_context_node(ctx->ty);
 
-  if (operation->resolve_with_type_info(type_info, *context)) {
+  if (operation->resolve_with_type_info(type_info)) {
     cur_scope.add_field(
-        name, yalll::Value(type_info,
-                           operation->generate_value(*builder).get_llvm_val(),
-                           *builder, ctx->getStart()->getLine(), name));
+        name,
+        yalll::Value(type_info, operation->generate_value().get_llvm_val(),
+                     ctx->getStart()->getLine(), name));
   }
   return std::any();
 }
@@ -234,8 +229,7 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
 std::any YALLLVisitorImpl::visitFunction_def(
     YALLLParser::Function_defContext* ctx) {
   std::string name = ctx->func_name->getText();
-  auto ret_type =
-      typesafety::TypeInformation::from_context_node(ctx->ret_type, *context);
+  auto ret_type = typesafety::TypeInformation::from_context_node(ctx->ret_type);
   auto params = std::any_cast<std::vector<yalll::Value>>(visit(ctx->parm_list));
 
   cur_scope.push(name);
@@ -255,19 +249,19 @@ std::any YALLLVisitorImpl::visitParameter_list(
     YALLLParser::Parameter_listContext* ctx) {
   std::vector<yalll::Value> params;
   if (ctx->first_type) {
-    auto type_info = typesafety::TypeInformation::from_context_node(
-        ctx->first_type, *context);
+    auto type_info =
+        typesafety::TypeInformation::from_context_node(ctx->first_type);
     std::string name = ctx->first_name->getText();
-    params.push_back(yalll::Value(type_info, nullptr, *builder,
-                                  ctx->getStart()->getLine(), name));
+    params.push_back(
+        yalll::Value(type_info, nullptr, ctx->getStart()->getLine(), name));
   }
 
   for (auto i = 0; i < ctx->nth_type.size(); ++i) {
-    auto type_info = typesafety::TypeInformation::from_context_node(
-        ctx->nth_type.at(i), *context);
+    auto type_info =
+        typesafety::TypeInformation::from_context_node(ctx->nth_type.at(i));
     std::string name = ctx->nth_name.at(i)->getText();
-    params.push_back(yalll::Value(type_info, nullptr, *builder,
-                                  ctx->getStart()->getLine(), name));
+    params.push_back(
+        yalll::Value(type_info, nullptr, ctx->getStart()->getLine(), name));
   }
 
   return params;
@@ -283,9 +277,8 @@ std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
       *context, "if_exit", module->getFunction(cur_scope.get_scope_ctx_name()));
 
   auto if_cmp = to_operation(visit(ctx->if_br->cmp));
-  if (if_cmp->resolve_with_type_info(
-          typesafety::TypeInformation::BOOL_T(*context), *context)) {
-    auto cmp_value = if_cmp->generate_value(*builder);
+  if (if_cmp->resolve_with_type_info(typesafety::TypeInformation::BOOL_T())) {
+    auto cmp_value = if_cmp->generate_value();
     builder->CreateCondBr(cmp_value.get_llvm_val(), if_true, if_false);
 
     builder->SetInsertPoint(if_true);
@@ -303,8 +296,8 @@ std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
 
       auto else_if_cmp = to_operation(visit(else_if_br->cmp));
       if (else_if_cmp->resolve_with_type_info(
-              typesafety::TypeInformation::BOOL_T(*context), *context)) {
-        auto else_if_cmp_value = else_if_cmp->generate_value(*builder);
+              typesafety::TypeInformation::BOOL_T())) {
+        auto else_if_cmp_value = else_if_cmp->generate_value();
         builder->CreateCondBr(else_if_cmp_value.get_llvm_val(), else_if_true,
                               else_if_false);
 
@@ -464,8 +457,8 @@ std::any YALLLVisitorImpl::visitTerminal_op(
   switch (ctx->val->getType()) {
     case YALLLParser::INTEGER:
       return std::make_shared<yalll::TerminalOperation>(
-          yalll::Value(typesafety::TypeInformation::INTAUTO_T(*context),
-                       ctx->val->getText(), *builder, ctx->val->getLine()));
+          yalll::Value(typesafety::TypeInformation::INTAUTO_T(),
+                       ctx->val->getText(), ctx->val->getLine()));
 
     case YALLLParser::NAME: {
       auto* value = cur_scope.find_field(ctx->val->getText());
@@ -476,30 +469,30 @@ std::any YALLLVisitorImpl::visitTerminal_op(
         std::cout << "Undefined variable used " << ctx->val->getText()
                   << std::endl;
         return std::make_shared<yalll::TerminalOperation>(
-            yalll::Value(typesafety::TypeInformation::VOID_T(*context),
-                         llvm::PoisonValue::get(builder->getVoidTy()), *builder,
+            yalll::Value(typesafety::TypeInformation::VOID_T(),
+                         llvm::PoisonValue::get(builder->getVoidTy()),
                          ctx->val->getLine()));
       }
     }
 
     case YALLLParser::DECIMAL:
       return std::make_shared<yalll::TerminalOperation>(
-          yalll::Value(typesafety::TypeInformation::DECAUTO_T(*context),
-                       ctx->val->getText(), *builder, ctx->val->getLine()));
+          yalll::Value(typesafety::TypeInformation::DECAUTO_T(),
+                       ctx->val->getText(), ctx->val->getLine()));
 
     case YALLLParser::BOOL_TRUE:
       return std::make_shared<yalll::TerminalOperation>(
-          yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
-                       builder->getInt1(true), *builder, ctx->val->getLine()));
+          yalll::Value(typesafety::TypeInformation::BOOL_T(),
+                       builder->getInt1(true), ctx->val->getLine()));
 
     case YALLLParser::BOOL_FALSE:
       return std::make_shared<yalll::TerminalOperation>(
-          yalll::Value(typesafety::TypeInformation::BOOL_T(*context),
-                       builder->getInt1(false), *builder, ctx->val->getLine()));
+          yalll::Value(typesafety::TypeInformation::BOOL_T(),
+                       builder->getInt1(false), ctx->val->getLine()));
 
     case YALLLParser::NULL_VALUE:
       return std::make_shared<yalll::TerminalOperation>(
-          yalll::Value::NULL_VALUE(*builder, ctx->val->getLine()));
+          yalll::Value::NULL_VALUE(ctx->val->getLine()));
 
     default:
       std::cout << "Unknown terminal type found " << ctx->val->getText()

@@ -14,7 +14,6 @@ Value::Value(const Value& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
-  builder = other.builder;
 }
 
 Value& Value::operator=(const Value& other) {
@@ -25,7 +24,6 @@ Value& Value::operator=(const Value& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
-  builder = other.builder;
 
   return *this;
 }
@@ -36,7 +34,6 @@ Value::Value(Value&& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
-  builder = other.builder;
 }
 
 Value& Value::operator=(Value&& other) {
@@ -45,7 +42,6 @@ Value& Value::operator=(Value&& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
-  builder = other.builder;
   return *this;
 }
 
@@ -65,7 +61,10 @@ llvm::Value* Value::get_llvm_val() {
   if (type_info.get_yalll_type() != typesafety::INTAUTO_T_ID &&
       type_info.get_yalll_type() != YALLLParser::TBD_T &&
       type_info.get_yalll_type() != typesafety::DECAUTO_T_ID) {
-    std::cout << "Converting: " << value_string << " to " << type_info.to_string() << std::endl;
+    std::cout << "Converting: " << value_string << " to "
+              << type_info.to_string() << std::endl;
+
+    yalll::Import<llvm::IRBuilder<>> builder;
     switch (type_info.get_yalll_type()) {
       case YALLLParser::I8_T:
         llvm_val = llvm::ConstantInt::getSigned(builder->getInt8Ty(),
@@ -113,6 +112,7 @@ llvm::Value* Value::llvm_cast(typesafety::TypeInformation& type_info) {
   if (name.size() == 0) {
     this->type_info = type_info;
 
+    yalll::Import<llvm::IRBuilder<>> builder;
     switch (type_info.get_yalll_type()) {
       case YALLLParser::I8_T:
         llvm_val = llvm::ConstantInt::getSigned(builder->getInt8Ty(),
