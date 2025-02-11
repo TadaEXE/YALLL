@@ -235,11 +235,12 @@ std::any YALLLVisitorImpl::visitFunction_def(
   cur_scope.push(name);
   yalll::Function func(name, ret_type, params);
   // delete later just for testing
-  for (auto val : params) {
-    cur_scope.add_field(val.name, std::move(val));
-  }
+  // for (auto val : params) {
+  //   cur_scope.add_field(val.name, std::move(val));
+  // }
   //
-  func.generate_function_sig(*module);
+  (void)func.generate_function_sig(*module);
+  cur_scope.add_function(name, std::move(func));
 
   visit(ctx->func_block);
   return std::any();

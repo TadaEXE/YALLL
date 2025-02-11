@@ -7,11 +7,13 @@
 #include <vector>
 
 #include "../value/value.h"
+#include "../function/function.h"
 
 namespace scoping {
 
 struct ScopeData {
   std::unordered_map<std::string, yalll::Value> field_map;
+  std::unordered_map<std::string, yalll::Function> func_map;
   std::string ctx_name;
 };
 
@@ -22,7 +24,11 @@ class Scope {
   void pop();
 
   void add_field(const std::string& name, yalll::Value&& value);
+  void add_function(const std::string& name, yalll::Function&& func);
+
   yalll::Value* find_field(const std::string& name);
+  yalll::Function* find_function(const std::string& name);
+
   std::string& get_scope_ctx_name();
 
  private:
