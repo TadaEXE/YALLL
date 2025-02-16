@@ -28,6 +28,7 @@
 #include "../operation/addoperation.h"
 #include "../operation/andoperation.h"
 #include "../operation/cmpoperation.h"
+#include "../operation/funccalloperation.h"
 #include "../operation/muloperation.h"
 #include "../operation/operation.h"
 #include "../operation/oroperation.h"
@@ -91,6 +92,8 @@ inline std::shared_ptr<yalll::Operation> to_operation(
       return std::any_cast<std::shared_ptr<yalll::CmpOperation>>(any);
     if (type == typeid(std::shared_ptr<yalll::TerminalOperation>).hash_code())
       return std::any_cast<std::shared_ptr<yalll::TerminalOperation>>(any);
+    if (type == typeid(std::shared_ptr<yalll::FuncCallOperation>).hash_code())
+      return std::any_cast<std::shared_ptr<yalll::FuncCallOperation>>(any);
 
     return std::any_cast<std::shared_ptr<yalll::Operation>>(any);
   } catch (const std::bad_any_cast& cast) {
@@ -138,17 +141,19 @@ std::any YALLLVisitorImpl::visitEntry_point(
     YALLLParser::Entry_pointContext* ctx) {
   logger->send_log("Entering main function");
   ++*logger;
+
   cur_scope.push("main");
-  auto prototype = llvm::FunctionType::get(builder->getInt32Ty(), false);
-  auto main_fn = llvm::Function::Create(
-      prototype, llvm::Function::ExternalLinkage, "main", module.get());
-  auto body = llvm::BasicBlock::Create(*context, "entry", main_fn);
-  builder->SetInsertPoint(body);
+  yalll::Function func("main", typesafety::TypeInformation::I32_T(), true);
+
+  (void)func.generate_function_sig(*module);
+  cur_scope.add_function("main", std::move(func));
+  cur_scope.set_active_function("main");
 
   visitChildren(ctx);
 
   // ensure error exit if no return given by program
-  builder->CreateRet(llvm::ConstantInt::getSigned(builder->getInt32Ty(), -1));
+  builder->CreateRet(llvm::ConstantInt::getSigned(builder->getInt32Ty(), 1));
+
   --*logger;
   return std::any();
 }
@@ -162,33 +167,43 @@ std::any YALLLVisitorImpl::visitExpression(
     YALLLParser::ExpressionContext* ctx) {
   logger->send_log("Visiting expression");
   ++*logger;
+
   switch (ctx->getStart()->getType()) {
     case YALLLParser::RETURN_KW:
       logger->send_log<std::string>("Returning {}", ctx->ret_val->getText());
-        (void)builder->CreateRetVoid();
-        return std::any();
-      }
-      std::cout << ctx->getText() << std::endl;
+
       auto operation = to_operation(visit(ctx->ret_val));
-      // if (operation.resolve_with_type_info(cur_scope.get_ret_type_info()))
-      if (operation->resolve_without_type_info())
+      if (cur_scope.has_active_function() &&
+          operation->resolve_with_type_info(
+              cur_scope.get_active_function()->get_return_type())) {
+        cur_scope.get_active_function()->ret_val = operation->generate_value();
+        logger->send_log("Return Info: {}",
+                         cur_scope.get_active_function()->ret_val.to_string());
+        cur_scope.get_active_function()->generate_function_return();
+
+      } else if (operation->resolve_without_type_info()) {
+        logger->send_internal_error("Returning without active function!");
         (void)builder->CreateRet(operation->generate_value().get_llvm_val());
+      }
 
       --*logger;
       return std::any();
   }
 
+  --*logger;
   return visitChildren(ctx);
 }
 
 std::any YALLLVisitorImpl::visitBlock(YALLLParser::BlockContext* ctx) {
   logger->send_log("Visiting block");
   ++*logger;
+
   cur_scope.push();
   for (auto* statement : ctx->statements) {
     logger->send_log("Statement: {}", statement->getText());
     visit(statement);
   }
+
   cur_scope.pop();
   --*logger;
   return std::any();
@@ -224,11 +239,13 @@ std::any YALLLVisitorImpl::visitAssignment(
 std::any YALLLVisitorImpl::visitVar_dec(YALLLParser::Var_decContext* ctx) {
   logger->send_log("Visiting var dec");
   ++*logger;
+
   std::string name = ctx->name->getText();
   auto type_info = typesafety::TypeInformation::from_context_node(ctx->ty);
 
   cur_scope.add_field(
       name, yalll::Value(type_info, nullptr, ctx->name->getLine(), name));
+
   --*logger;
   return std::any();
 }
@@ -236,6 +253,7 @@ std::any YALLLVisitorImpl::visitVar_dec(YALLLParser::Var_decContext* ctx) {
 std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   logger->send_log("Visiting var def");
   ++*logger;
+
   std::string name = ctx->name->getText();
   auto operation = to_operation(visit(ctx->val));
 
@@ -247,6 +265,7 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
         yalll::Value(type_info, operation->generate_value().get_llvm_val(),
                      ctx->getStart()->getLine(), name));
   }
+
   --*logger;
   return std::any();
 }
@@ -254,30 +273,30 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
 std::any YALLLVisitorImpl::visitFunction_def(
     YALLLParser::Function_defContext* ctx) {
   std::string name = ctx->func_name->getText();
+
   logger->send_log("Visiting function {}", name);
   ++*logger;
+
   auto ret_type = typesafety::TypeInformation::from_context_node(ctx->ret_type);
   auto params = std::any_cast<std::vector<yalll::Value>>(visit(ctx->parm_list));
 
   cur_scope.push(name);
   yalll::Function func(name, ret_type, params);
-  // delete later just for testing
-  // for (auto val : params) {
-  //   cur_scope.add_field(val.name, std::move(val));
-  // }
-  //
+
   (void)func.generate_function_sig(*module);
   cur_scope.add_function(name, std::move(func));
+  cur_scope.set_active_function(name);
 
   visit(ctx->func_block);
+
   --*logger;
   return std::any();
 }
-
 std::any YALLLVisitorImpl::visitParameter_list(
     YALLLParser::Parameter_listContext* ctx) {
   logger->send_log("Visiting paramlist");
   ++*logger;
+
   std::vector<yalll::Value> params;
   if (ctx->first_type) {
     auto type_info =
@@ -302,6 +321,7 @@ std::any YALLLVisitorImpl::visitParameter_list(
 std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
   logger->send_log("Visiting if else");
   ++*logger;
+
   auto if_true = llvm::BasicBlock::Create(
       *context, "if_true", module->getFunction(cur_scope.get_scope_ctx_name()));
   auto if_false = llvm::BasicBlock::Create(
@@ -353,6 +373,7 @@ std::any YALLLVisitorImpl::visitIf_else(YALLLParser::If_elseContext* ctx) {
     builder->CreateBr(if_exit);
     builder->SetInsertPoint(if_exit);
   }
+
   --*logger;
   return std::any();
 }
@@ -521,6 +542,41 @@ std::any YALLLVisitorImpl::visitPrimary_op_fc(
   --*logger;
   return res;
 }
+
+std::any YALLLVisitorImpl::visitFunction_call(
+    YALLLParser::Function_callContext* ctx) {
+  std::string name = ctx->name->getText();
+  logger->send_log("Visiting function {} call", name);
+  ++*logger;
+
+  auto* func = cur_scope.find_function(name);
+  auto arguments =
+      std::any_cast<std::vector<std::shared_ptr<yalll::Operation>>>(
+          visit(ctx->args));
+
+  --*logger;
+  return std::make_shared<yalll::FuncCallOperation>(
+      yalll::FuncCallOperation(*func, arguments));
+}
+
+std::any YALLLVisitorImpl::visitArgument_list(
+    YALLLParser::Argument_listContext* ctx) {
+  logger->send_log("Visiting argument list");
+  ++*logger;
+
+  std::vector<std::shared_ptr<yalll::Operation>> arguments;
+  if (ctx->first_arg) {
+    logger->send_log("Arg:{}", ctx->first_arg->getText());
+    arguments.push_back(to_operation(visit(ctx->first_arg)));
+
+    for (auto* arg : ctx->nth_arg) {
+      logger->send_log("Arg:{}", arg->getText());
+      arguments.push_back(to_operation(visit(arg)));
+    }
+  }
+
+  --*logger;
+  return std::move(arguments);
 }
 
 std::any YALLLVisitorImpl::visitPrimary_op_term(

@@ -17,8 +17,10 @@ Value OrOperation::generate_value() {
                 lhs.get_line());
   }
 
+  logger->send_log("GenOr: {}", lhs.to_string());
   return std::move(lhs);
 }
+
 std::vector<typesafety::TypeProposal>
 OrOperation::gather_and_resolve_proposals() {
   std::vector<typesafety::TypeProposal> proposals;

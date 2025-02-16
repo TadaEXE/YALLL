@@ -70,6 +70,7 @@ Value MulOperation::generate_value() {
         break;
     }
   }
+  logger->send_log("GenMul: {}", lhs.to_string());
   return std::move(lhs);
 }
 

@@ -107,6 +107,8 @@ Value CmpOperation::generate_value() {
     }
   }
 
+
+  logger->send_log("GenCmp: {}", lhs.to_string());
   return std::move(result);
 }
 

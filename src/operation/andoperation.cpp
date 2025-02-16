@@ -17,6 +17,7 @@ Value AndOperation::generate_value() {
                 lhs.get_line());
   }
 
+  logger->send_log("GenAnd: {}", lhs.to_string());
   return std::move(lhs);
 }
 

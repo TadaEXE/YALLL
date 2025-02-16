@@ -27,9 +27,16 @@ Operation& Operation::operator=(const Operation& other) {
 
 Value Operation::generate_value() {
   if (operations.size() > 1) {
-    std::cout << "Invalid top level operation" << std::endl;
+    logger->send_internal_error(
+        "Invalid top level operation with more than 1 operands");
+  } else if (operations.size() == 0) {
+    logger->send_log(
+        "Can't generate value on empty operation. Segfault incomming!");
   }
-  return std::move(operations.at(0)->generate_value());
+  auto tmp = operations.at(0)->generate_value();
+
+  logger->send_log("GenTop: {}", tmp.to_string());
+  return std::move(tmp);
 }
 
 std::vector<typesafety::TypeProposal>
@@ -44,6 +51,7 @@ Operation::gather_and_resolve_proposals() {
 
 bool Operation::resolve_with_type_info(typesafety::TypeInformation type_info) {
   auto proposals = gather_and_resolve_proposals();
+  logger->send_log("Operation tries to resolve to {}", type_info.to_string());
   return typesafety::TypeResolver::try_resolve_to_type(proposals, type_info);
 }
 

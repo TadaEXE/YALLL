@@ -9,6 +9,8 @@
 #include "../typesafety/typeresolver.h"
 #include "../typesafety/typesafety.h"
 #include "../value/value.h"
+#include "../import/import.h"
+#include "../logging/logger.h"
 
 namespace yalll {
 
@@ -41,6 +43,7 @@ class Operation {
  protected:
   std::vector<std::shared_ptr<Operation>> operations;
   std::vector<size_t> op_codes;
+  Import<util::Logger> logger;
 };
 
 }  // namespace yalll

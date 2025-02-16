@@ -29,9 +29,16 @@ class Scope {
   yalll::Value* find_field(const std::string& name);
   yalll::Function* find_function(const std::string& name);
 
+  void set_active_function(const std::string& name);
+  void no_active_function();
+  bool has_active_function() { return active_function != nullptr; }
+  yalll::Function* get_active_function() { return active_function; }
+
   std::string& get_scope_ctx_name();
 
  private:
   std::vector<ScopeData> scope_frames {ScopeData()};
+  yalll::Import<util::Logger> logger;
+  yalll::Function* active_function = nullptr;
 };
 }  // namespace scoping

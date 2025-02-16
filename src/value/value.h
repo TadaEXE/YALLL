@@ -7,6 +7,7 @@
 #include <string>
 
 #include "../import/import.h"
+#include "../logging/logger.h"
 #include "../typesafety/typesafety.h"
 
 namespace yalll {
@@ -60,9 +61,10 @@ class Value {
 
   llvm::Value* llvm_cast(typesafety::TypeInformation& type_info);
 
-  llvm::Value* llvm_val;
+  llvm::Value* llvm_val = nullptr;
 
  private:
+  yalll::Import<util::Logger> logger;
   std::string value_string;
 
   size_t line;

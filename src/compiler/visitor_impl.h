@@ -63,6 +63,9 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
   // ==========================================================================
   std::any visitTerminal_op(YALLLParser::Terminal_opContext* ctx) override;
 
+  std::any visitFunction_call(YALLLParser::Function_callContext* ctx) override;
+  std::any visitArgument_list(YALLLParser::Argument_listContext* ctx) override;
+
  private:
   yalll::Import<llvm::LLVMContext> context;
   yalll::Import<llvm::IRBuilder<>> builder;

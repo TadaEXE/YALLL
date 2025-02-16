@@ -6,6 +6,8 @@
 
 #include <format>
 
+#include "../import/import.h"
+#include "../logging/logger.h"
 #include "YALLLParser.h"
 #include "compatibilitymatrix.h"
 #include "typesizes.h"
@@ -87,7 +89,16 @@ TypeInformation TypeInformation::from_yalll_t(size_t yalll_t) {
       return BOOL_T();
     case YALLLParser::VOID_T:
       return VOID_T();
+    case INTAUTO_T_ID:
+      return INTAUTO_T();
+    case DECAUTO_T_ID:
+      return DECAUTO_T();
+    case YALLLParser::TBD_T:
+      return TBD_T();
     default:
+      yalll::Import<util::Logger> logger;
+      logger->send_internal_error("Got unexpected yalll_t {} in from_yalll_t",
+                                  yalll_t);
       return TBD_T();
   }
 }

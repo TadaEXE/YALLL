@@ -116,7 +116,7 @@ class TypeInformation {
   static bool yalll_ts_compatible(size_t lhs, size_t rhs);
   bool is_float_type() const;
 
-  llvm::Type* get_llvm_type() const;
+  llvm::Type* get_llvm_type() const { return llvm_t; };
   size_t get_yalll_type() const { return yalll_t; }
 
   std::string to_string() const;

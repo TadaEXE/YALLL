@@ -7,5 +7,5 @@ func bar (i32 val1, i32 val2) : i32 {
 }
 
 func () : i32 {
-  return foo();
+  return bar(2, 2);
 }

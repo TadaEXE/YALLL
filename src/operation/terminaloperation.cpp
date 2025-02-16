@@ -2,7 +2,10 @@
 
 namespace yalll {
 
-Value TerminalOperation::generate_value() { return terminal_value; }
+Value TerminalOperation::generate_value() {
+  logger->send_log("GenTerm: {}", terminal_value.to_string());
+  return terminal_value;
+}
 
 std::vector<typesafety::TypeProposal>
 TerminalOperation::gather_and_resolve_proposals() {

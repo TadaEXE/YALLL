@@ -41,6 +41,7 @@ Value AddOperation::generate_value() {
         break;
     }
   }
+  logger->send_log("GenAdd: {}", lhs.to_string());
   return std::move(lhs);
 }
 

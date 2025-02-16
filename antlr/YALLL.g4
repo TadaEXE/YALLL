@@ -151,9 +151,9 @@ BOOL_TRUE: 'true';
 BOOL_FALSE: 'false';
 NULL_VALUE: 'null';
 
-function_call: NAME LPAREN_SYM argument_list RPAREN_SYM;
+function_call: name=NAME LPAREN_SYM args=argument_list RPAREN_SYM;
 
-argument_list: (operation (COMMA_SYM operation)*)?;
+argument_list: (first_arg=operation (COMMA_SYM nth_arg+=operation)*)?;
 
 
 // Keywords:
