@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "../import/import.h"
+#include "../logging/logger.h"
 #include "../scoping/scope.h"
 #include "YALLLBaseVisitor.h"
 #include "YALLLParser.h"
@@ -65,6 +66,7 @@ class YALLLVisitorImpl : public YALLLBaseVisitor {
  private:
   yalll::Import<llvm::LLVMContext> context;
   yalll::Import<llvm::IRBuilder<>> builder;
+  yalll::Import<util::Logger> logger;
   std::unique_ptr<llvm::Module> module;
 
   void trigger_function_return();

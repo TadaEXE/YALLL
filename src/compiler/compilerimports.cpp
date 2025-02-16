@@ -1,11 +1,11 @@
-#pragma once
-
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/Support/raw_ostream.h>
+
+#include "../logging/logger.h"
 
 #include "../import/import.h"
 
@@ -22,3 +22,8 @@ llvm::IRBuilder<>& yalll::Import<llvm::IRBuilder<>>::get_instance() {
   return builder;
 }
 
+template <>
+util::Logger& yalll::Import<util::Logger>::get_instance() {
+  static util::Logger logger;
+  return logger;
+}
