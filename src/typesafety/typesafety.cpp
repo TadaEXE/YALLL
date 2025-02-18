@@ -6,6 +6,8 @@
 
 #include <format>
 
+#include "../import/import.h"
+#include "../logging/logger.h"
 #include "YALLLParser.h"
 #include "compatibilitymatrix.h"
 #include "typesizes.h"
@@ -61,41 +63,49 @@ bool TypeInformation::operator==(TypeInformation& other) {
   throw "Don't try to compare incompatible types please.";
 }
 
-TypeInformation TypeInformation::from_yalll_t(size_t yalll_t,
-                                              llvm::LLVMContext& ctx) {
+TypeInformation TypeInformation::from_yalll_t(size_t yalll_t) {
   switch (yalll_t) {
     case YALLLParser::I8_T:
-      return I8_T(ctx);
+      return I8_T();
     case YALLLParser::I16_T:
-      return I16_T(ctx);
+      return I16_T();
     case YALLLParser::I32_T:
-      return I32_T(ctx);
+      return I32_T();
     case YALLLParser::I64_T:
-      return I64_T(ctx);
+      return I64_T();
     case YALLLParser::U8_T:
-      return U8_T(ctx);
+      return U8_T();
     case YALLLParser::U16_T:
-      return U16_T(ctx);
+      return U16_T();
     case YALLLParser::U32_T:
-      return U32_T(ctx);
+      return U32_T();
     case YALLLParser::U64_T:
-      return U64_T(ctx);
+      return U64_T();
     case YALLLParser::D32_T:
-      return D32_T(ctx);
+      return D32_T();
     case YALLLParser::D64_T:
-      return D64_T(ctx);
+      return D64_T();
     case YALLLParser::BOOL_T:
-      return BOOL_T(ctx);
+      return BOOL_T();
     case YALLLParser::VOID_T:
-      return VOID_T(ctx);
+      return VOID_T();
+    case INTAUTO_T_ID:
+      return INTAUTO_T();
+    case DECAUTO_T_ID:
+      return DECAUTO_T();
+    case YALLLParser::TBD_T:
+      return TBD_T();
     default:
-      return TBD_T(ctx);
+      yalll::Import<util::Logger> logger;
+      logger->send_internal_error("Got unexpected yalll_t {} in from_yalll_t",
+                                  yalll_t);
+      return TBD_T();
   }
 }
 
 TypeInformation TypeInformation::from_context_node(
-    YALLLParser::TypeContext* node, llvm::LLVMContext& ctx) {
-  auto type = from_yalll_t(node->ty->getStart()->getType(), ctx);
+    YALLLParser::TypeContext* node) {
+  auto type = from_yalll_t(node->ty->getStart()->getType());
   if (node->errable) type = type.make_errable();
   if (node->mutable_) type = type.make_mutable();
   return type;

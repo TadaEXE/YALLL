@@ -9,6 +9,8 @@
 #include "../typesafety/typeresolver.h"
 #include "../typesafety/typesafety.h"
 #include "../value/value.h"
+#include "../import/import.h"
+#include "../logging/logger.h"
 
 namespace yalll {
 
@@ -32,17 +34,16 @@ class Operation {
   std::vector<std::shared_ptr<Operation>>& get_values() { return operations; }
   std::vector<size_t>& get_ops() { return op_codes; }
 
-  virtual Value generate_value(llvm::IRBuilder<>& builder);
-  virtual std::vector<typesafety::TypeProposal> gather_and_resolve_proposals(
-      llvm::LLVMContext& ctx);
+  virtual Value generate_value();
+  virtual std::vector<typesafety::TypeProposal> gather_and_resolve_proposals();
 
-  bool resolve_with_type_info(typesafety::TypeInformation type_info,
-                              llvm::LLVMContext& ctx);
-  bool resolve_without_type_info(llvm::LLVMContext& ctx);
+  bool resolve_with_type_info(typesafety::TypeInformation type_info);
+  bool resolve_without_type_info();
 
  protected:
   std::vector<std::shared_ptr<Operation>> operations;
   std::vector<size_t> op_codes;
+  Import<util::Logger> logger;
 };
 
 }  // namespace yalll

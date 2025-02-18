@@ -6,20 +6,15 @@
 
 #include <string>
 
+#include "../import/import.h"
+#include "../logging/logger.h"
 #include "../typesafety/typesafety.h"
 
 namespace yalll {
 
 class Value {
  public:
-  Value()
-      : type_info(),
-        llvm_val(),
-        builder(),
-        line(),
-        name(),
-        named(),
-        value_string() {}
+  Value() : type_info(), llvm_val(), line(), name(), named(), value_string() {}
 
   Value(const Value& other);
   Value& operator=(const Value& other);
@@ -27,30 +22,29 @@ class Value {
   Value& operator=(Value&& other);
 
   Value(typesafety::TypeInformation type_info, llvm::Value* llvm_val,
-        llvm::IRBuilder<>& builder, size_t line, std::string name = "")
+        size_t line, std::string name = "")
       : type_info(type_info),
         llvm_val(llvm_val),
-        builder(&builder),
         line(line),
         name(name),
         named(!name.empty()),
         value_string("") {}
 
   Value(typesafety::TypeInformation type_info, std::string value_string,
-        llvm::IRBuilder<>& builder, size_t line, std::string name = "")
+        size_t line, std::string name = "")
       : type_info(type_info),
         value_string(value_string),
-        builder(&builder),
         line(line),
         name(name),
         named(!name.empty()),
         llvm_val(nullptr) {}
 
-  static Value NULL_VALUE(llvm::IRBuilder<>& builder, size_t line) {
-    auto tmp = Value(typesafety::TypeInformation::TBD_T(builder.getContext()),
+  static Value NULL_VALUE(size_t line) {
+    yalll::Import<llvm::LLVMContext> context;
+    auto tmp = Value(typesafety::TypeInformation::TBD_T(),
                      static_cast<llvm::Value*>(llvm::Constant::getNullValue(
-                         llvm::Type::getVoidTy(builder.getContext()))),
-                     builder, line);
+                         llvm::Type::getVoidTy(*context))),
+                     line);
     tmp.null_value = true;
     return tmp;
   }
@@ -67,11 +61,11 @@ class Value {
 
   llvm::Value* llvm_cast(typesafety::TypeInformation& type_info);
 
-  llvm::Value* llvm_val;
+  llvm::Value* llvm_val = nullptr;
 
  private:
+  yalll::Import<util::Logger> logger;
   std::string value_string;
-  llvm::IRBuilder<>* builder;
 
   size_t line;
 

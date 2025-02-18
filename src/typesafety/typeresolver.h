@@ -31,11 +31,9 @@ class TypeResolver {
  public:
   // Will leave all values with the same real type that is not tbd
   // returns false if not possible (won't touch values then)
-  static bool try_resolve(std::vector<TypeProposal>& values,
-                          llvm::LLVMContext& ctx);
+  static bool try_resolve(std::vector<TypeProposal>& values);
 
   static bool try_resolve_to_type(std::vector<TypeProposal>& values,
-                                  llvm::LLVMContext& ctx,
                                   TypeInformation& hint);
 
   enum class DefaultYalllTypes {

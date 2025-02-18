@@ -41,8 +41,8 @@ message("Adding LLVM-Libs: ${llvm_libs}")
 # LLVM ----------------------------------------------------------
 
 file(GLOB_RECURSE src_files
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/**.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/**.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${src_files} ${ANTLR_YALLL_CXX_OUTPUTS})

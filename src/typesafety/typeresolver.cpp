@@ -2,13 +2,25 @@
 
 #include <llvm/IR/LLVMContext.h>
 
+#include <string>
+
+#include "../import/import.h"
+#include "../logging/logger.h"
 #include "YALLLParser.h"
 #include "typesafety.h"
 #include "typesizes.h"
 
 namespace typesafety {
-bool TypeResolver::try_resolve(std::vector<TypeProposal>& values,
-                               llvm::LLVMContext& ctx) {
+bool TypeResolver::try_resolve(std::vector<TypeProposal>& values) {
+  yalll::Import<util::Logger> logger;
+
+  std::string typenames;
+  for (auto val : values) {
+    typenames.append(TypeInformation::from_yalll_t(val.yalll_type).to_string());
+    typenames.append(",");
+  }
+  logger->send_log("trying to resolve: {}", typenames);
+
   if (values.size() == 0) return true;
   size_t biggest_type = values.at(0).yalll_type;
   bool fixed_proposal_found = false;
@@ -38,7 +50,7 @@ bool TypeResolver::try_resolve(std::vector<TypeProposal>& values,
       }
     } else if (!values.at(0).attached_value->type_info.is_compatible(
                    biggest_type)) {
-      auto tmp = TypeInformation::from_yalll_t(biggest_type, ctx);
+      auto tmp = TypeInformation::from_yalll_t(biggest_type);
       incompatible_types(values.at(0).attached_value->type_info, tmp, line);
       return false;
     }
@@ -51,38 +63,48 @@ bool TypeResolver::try_resolve(std::vector<TypeProposal>& values,
         biggest_type = val.yalll_type;
       }
     } else {
-      auto tmp = TypeInformation::from_yalll_t(biggest_type, ctx);
+      auto tmp = TypeInformation::from_yalll_t(biggest_type);
       incompatible_types(tmp, val.attached_value->type_info,
                          val.attached_value->get_line());
       return false;
     }
   }
 
-  auto tmp = TypeInformation::from_yalll_t(biggest_type, ctx);
+  auto tmp = TypeInformation::from_yalll_t(biggest_type);
   unsave_multi_cast(tmp, values);
 
   return true;
 }
 
 bool TypeResolver::try_resolve_to_type(std::vector<TypeProposal>& values,
-                                       llvm::LLVMContext& ctx,
                                        TypeInformation& hint) {
   if (values.size() == 0) return true;
+  yalll::Import<util::Logger> logger;
+
+  std::string typenames;
+  for (auto val : values) {
+    typenames.append(TypeInformation::from_yalll_t(val.yalll_type).to_string());
+    typenames.append(",");
+  }
+  logger->send_log("trying to resolve: {} to {}", typenames, hint.to_string());
 
   for (auto val : values) {
     if (val.fixed && val.yalll_type != hint.get_yalll_type()) {
-      auto tmp = TypeInformation::from_yalll_t(val.yalll_type, ctx);
+      auto tmp = TypeInformation::from_yalll_t(val.yalll_type);
       incompatible_types(tmp, hint, 0);
+      logger->send_error("resolving failed");
       return false;
     }
     if (!hint.is_compatible(val.yalll_type)) {
-      auto tmp = TypeInformation::from_yalll_t(val.yalll_type, ctx);
+      auto tmp = TypeInformation::from_yalll_t(val.yalll_type);
       incompatible_types(tmp, hint, 0);
+      logger->send_error("resolving failed");
       return false;
     }
   }
 
   unsave_multi_cast(hint, values);
+  logger->send_log("success");
   return true;
 }
 

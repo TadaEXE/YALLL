@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <map>
 
+#include "../import/import.h"
 #include "YALLLParser.h"
 
 namespace typesafety {
@@ -39,56 +40,70 @@ class TypeInformation {
   TypeInformation(llvm::Type* llvm_t, size_t yalll_t)
       : llvm_t(llvm_t), yalll_t(yalll_t) {}
 
-  static TypeInformation I8_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt8Ty(ctx), YALLLParser::I8_T);
+  static TypeInformation I8_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt8Ty(*ctx), YALLLParser::I8_T);
   }
-  static TypeInformation I16_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt16Ty(ctx), YALLLParser::I16_T);
+  static TypeInformation I16_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt16Ty(*ctx), YALLLParser::I16_T);
   }
-  static TypeInformation I32_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt32Ty(ctx), YALLLParser::I32_T);
+  static TypeInformation I32_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt32Ty(*ctx), YALLLParser::I32_T);
   }
-  static TypeInformation I64_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt64Ty(ctx), YALLLParser::I64_T);
+  static TypeInformation I64_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt64Ty(*ctx), YALLLParser::I64_T);
   }
-  static TypeInformation U8_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt8Ty(ctx), YALLLParser::U8_T);
+  static TypeInformation U8_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt8Ty(*ctx), YALLLParser::U8_T);
   }
-  static TypeInformation U16_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt16Ty(ctx), YALLLParser::U16_T);
+  static TypeInformation U16_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt16Ty(*ctx), YALLLParser::U16_T);
   }
-  static TypeInformation U32_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt32Ty(ctx), YALLLParser::U32_T);
+  static TypeInformation U32_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt32Ty(*ctx), YALLLParser::U32_T);
   }
-  static TypeInformation U64_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt64Ty(ctx), YALLLParser::U64_T);
+  static TypeInformation U64_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt64Ty(*ctx), YALLLParser::U64_T);
   }
-  static TypeInformation D32_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getFloatTy(ctx), YALLLParser::D32_T);
+  static TypeInformation D32_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getFloatTy(*ctx), YALLLParser::D32_T);
   }
-  static TypeInformation D64_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getDoubleTy(ctx), YALLLParser::D64_T);
+  static TypeInformation D64_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getDoubleTy(*ctx), YALLLParser::D64_T);
   }
-  static TypeInformation BOOL_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt1Ty(ctx), YALLLParser::BOOL_T);
+  static TypeInformation BOOL_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt1Ty(*ctx), YALLLParser::BOOL_T);
   }
-  static TypeInformation VOID_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getVoidTy(ctx), YALLLParser::VOID_T);
+  static TypeInformation VOID_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getVoidTy(*ctx), YALLLParser::VOID_T);
   }
-  static TypeInformation TBD_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getVoidTy(ctx), YALLLParser::TBD_T);
+  static TypeInformation TBD_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getVoidTy(*ctx), YALLLParser::TBD_T);
   }
-  static TypeInformation INTAUTO_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getInt32Ty(ctx), INTAUTO_T_ID);
+  static TypeInformation INTAUTO_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getInt32Ty(*ctx), INTAUTO_T_ID);
   }
-  static TypeInformation DECAUTO_T(llvm::LLVMContext& ctx) {
-    return TypeInformation(llvm::Type::getFloatTy(ctx), DECAUTO_T_ID);
+  static TypeInformation DECAUTO_T() {
+    yalll::Import<llvm::LLVMContext> ctx;
+    return TypeInformation(llvm::Type::getFloatTy(*ctx), DECAUTO_T_ID);
   }
 
-  static TypeInformation from_yalll_t(size_t yalll_t, llvm::LLVMContext& ctx);
+  static TypeInformation from_yalll_t(size_t yalll_t);
 
-  static TypeInformation from_context_node(YALLLParser::TypeContext* node,
-                                           llvm::LLVMContext& ctx);
+  static TypeInformation from_context_node(YALLLParser::TypeContext* node);
 
   TypeInformation& make_mutable();
   TypeInformation& make_errable();
@@ -101,7 +116,7 @@ class TypeInformation {
   static bool yalll_ts_compatible(size_t lhs, size_t rhs);
   bool is_float_type() const;
 
-  llvm::Type* get_llvm_type() const;
+  llvm::Type* get_llvm_type() const { return llvm_t; };
   size_t get_yalll_type() const { return yalll_t; }
 
   std::string to_string() const;
