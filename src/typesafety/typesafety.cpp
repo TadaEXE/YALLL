@@ -152,39 +152,57 @@ bool TypeInformation::is_float_type() const {
 }
 
 std::string TypeInformation::to_string() const {
+  std::string base_t;
   switch (yalll_t) {
     case YALLLParser::I8_T:
-      return "i8";
+      base_t = "i8";
+      break;
     case YALLLParser::I16_T:
-      return "i16";
+      base_t = "i16";
+      break;
     case YALLLParser::I32_T:
-      return "i32";
+      base_t = "i32";
+      break;
     case YALLLParser::I64_T:
-      return "i64";
+      base_t = "i64";
+      break;
     case YALLLParser::U8_T:
-      return "u8";
+      base_t = "u8";
+      break;
     case YALLLParser::U16_T:
-      return "u16";
+      base_t = "u16";
+      break;
     case YALLLParser::U32_T:
-      return "u32";
+      base_t = "u32";
+      break;
     case YALLLParser::U64_T:
-      return "u64";
+      base_t = "u64";
+      break;
     case YALLLParser::D32_T:
-      return "d32";
+      base_t = "d32";
+      break;
     case YALLLParser::D64_T:
-      return "d64";
+      base_t = "d64";
+      break;
     case YALLLParser::BOOL_T:
-      return "bool";
+      base_t = "bool";
+      break;
     case INTAUTO_T_ID:
-      return "integer";
+      base_t = "integer";
+      break;
     case DECAUTO_T_ID:
-      return "decimal";
+      base_t = "decimal";
+      break;
     case YALLLParser::TBD_T:
-      return "tbd";
+      base_t = "tbd";
+      break;
 
     default:
-      return std::format("Unknown {}", yalll_t);
+      base_t = std::format("Unknown {}", yalll_t);
+      break;
   }
+
+  return std::format("{}{}{}", mutable_ ? "!" : "", errable ? "?" : "", base_t);
 }
 
 }  // namespace typesafety

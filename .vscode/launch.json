@@ -6,7 +6,7 @@
             "type": "codelldb",
             "request": "launch",
             "program": "${workspaceFolder}/out/Debug/YALLL", 
-            "args": ["-f", "${workspaceFolder}/programs/functions.y", "-o", "${workspaceFolder}/output.ll"], 
+            "args": ["-f", "${workspaceFolder}/programs/typeprefixes.y", "-o", "${workspaceFolder}/output.ll"], 
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],

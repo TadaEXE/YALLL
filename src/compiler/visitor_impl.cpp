@@ -258,6 +258,7 @@ std::any YALLLVisitorImpl::visitVar_def(YALLLParser::Var_defContext* ctx) {
   auto operation = to_operation(visit(ctx->val));
 
   auto type_info = typesafety::TypeInformation::from_context_node(ctx->ty);
+  logger->send_log("Got {} with type: {}", name, type_info.to_string());
 
   if (operation->resolve_with_type_info(type_info)) {
     cur_scope.add_field(
