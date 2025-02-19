@@ -20,7 +20,7 @@ TypeInformation& TypeInformation::operator=(const TypeInformation& other) {
   yalll_t = other.yalll_t;
   llvm_t = other.llvm_t;
   errable = other.errable;
-  immutalbe = other.immutalbe;
+  mutable_ = other.mutable_;
 
   return *this;
 }
@@ -29,7 +29,7 @@ TypeInformation& TypeInformation::operator=(TypeInformation&& other) {
   yalll_t = other.yalll_t;
   llvm_t = other.llvm_t;
   errable = other.errable;
-  immutalbe = other.immutalbe;
+  mutable_ = other.mutable_;
 
   return *this;
 }
@@ -112,7 +112,7 @@ TypeInformation TypeInformation::from_context_node(
 }
 
 TypeInformation& TypeInformation::make_mutable() {
-  immutalbe = false;
+  mutable_ = true;
   return *this;
 }
 
@@ -130,7 +130,7 @@ bool TypeInformation::is_signed() const {
 
 bool TypeInformation::is_errable() const { return errable; }
 
-bool TypeInformation::is_mutable() const { return !immutalbe; }
+bool TypeInformation::is_mutable() const { return mutable_; }
 
 bool TypeInformation::is_compatible(TypeInformation& other) const {
   return compatiblity_matrix.at(yalll_t).at(other.yalll_t);

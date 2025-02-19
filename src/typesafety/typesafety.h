@@ -18,17 +18,17 @@ constexpr size_t DECAUTO_T_ID = 133769;
 
 class TypeInformation {
  public:
-  TypeInformation() : llvm_t(), yalll_t(), immutalbe(true), errable(false) {}
+  TypeInformation() : llvm_t(), yalll_t(), mutable_(false), errable(false) {}
   TypeInformation(const TypeInformation& other)
       : llvm_t(other.llvm_t),
         yalll_t(other.yalll_t),
-        immutalbe(other.immutalbe),
+        mutable_(other.mutable_),
         errable(other.errable) {}
   TypeInformation& operator=(const TypeInformation& other);
   TypeInformation(TypeInformation&& other)
       : llvm_t(other.llvm_t),
         yalll_t(other.yalll_t),
-        immutalbe(other.immutalbe),
+        mutable_(other.mutable_),
         errable(other.errable) {}
   TypeInformation& operator=(TypeInformation&& other);
   bool operator>(TypeInformation& other);
@@ -38,7 +38,7 @@ class TypeInformation {
   bool operator==(TypeInformation& other);
 
   TypeInformation(llvm::Type* llvm_t, size_t yalll_t)
-      : llvm_t(llvm_t), yalll_t(yalll_t) {}
+      : llvm_t(llvm_t), yalll_t(yalll_t), mutable_(false), errable(false) {}
 
   static TypeInformation I8_T() {
     yalll::Import<llvm::LLVMContext> ctx;
@@ -125,8 +125,8 @@ class TypeInformation {
   llvm::Type* llvm_t;
   size_t yalll_t;
 
-  bool immutalbe;
-  bool errable;
+  bool mutable_ = false;
+  bool errable = false;
 
   std::map<size_t, bool> yalll_t_signed_map = {
       {YALLLParser::I8_T, true},    {YALLLParser::I16_T, true},
