@@ -8,6 +8,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # Antlr ---------------------------------------------------------
 add_definitions(-DANTLR4CPP_STATIC)
+set(ANTLR_TAG 4.13.2)
 
 include(ExternalAntlr4Cpp)
 

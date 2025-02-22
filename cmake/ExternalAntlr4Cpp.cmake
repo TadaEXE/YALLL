@@ -1,8 +1,6 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.20)
 
-if(POLICY CMP0114)
-    cmake_policy(SET CMP0114 NEW)
-endif()
+set(CMAKE_POLICY_DEFAULT_CMP<0114> NEW)
 
 include(ExternalProject)
 
