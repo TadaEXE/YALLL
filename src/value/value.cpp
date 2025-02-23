@@ -14,6 +14,7 @@ Value::Value(const Value& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  array = other.array;
 }
 
 Value& Value::operator=(const Value& other) {
@@ -24,6 +25,7 @@ Value& Value::operator=(const Value& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  array = other.array;
 
   return *this;
 }
@@ -34,6 +36,7 @@ Value::Value(Value&& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  array = other.array;
 }
 
 Value& Value::operator=(Value&& other) {
@@ -42,6 +45,7 @@ Value& Value::operator=(Value&& other) {
   type_info = other.type_info;
   named = other.named;
   value_string = other.value_string;
+  array = other.array;
   return *this;
 }
 

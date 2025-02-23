@@ -25,7 +25,7 @@ expression:
   | RETURN_KW ret_val=operation?
 ) SEMICOLON_SYM;
 
-assignment: name=NAME EQUAL_SYM val=operation;
+assignment: (name=NAME | array=array_access) EQUAL_SYM val=operation;
 
 
 // Decs:
@@ -130,7 +130,10 @@ primary_op:
     (LPAREN_SYM val=operation RPAREN_SYM) #primary_op_high_precedence
   | val=function_call #primary_op_fc
   | val=terminal_op #primary_op_term
+  | val=array_access #primary_op_array
   ;
+
+array_access: NAME size;
 
 terminal_op:
   val = (
@@ -145,7 +148,7 @@ terminal_op:
 
 
 // Misc:
-size: LBRACK_SYM INTEGER RBRACK_SYM;
+size: LBRACK_SYM val=INTEGER RBRACK_SYM;
 
 BOOL_TRUE: 'true';
 BOOL_FALSE: 'false';

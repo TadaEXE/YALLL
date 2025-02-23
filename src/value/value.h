@@ -54,8 +54,7 @@ class Value {
   std::string name;
   llvm::Value* get_llvm_val();
   typesafety::TypeInformation type_info;
-
-  bool is_null() const { return null_value; }
+  bool is_array() const { return array; }
 
   size_t get_line() const { return line; }
 
@@ -71,5 +70,6 @@ class Value {
 
   bool named;
   bool null_value = false;
+  bool array = false;
 };
 }  // namespace yalll
