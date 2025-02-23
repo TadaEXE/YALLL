@@ -165,6 +165,8 @@ ONERR_KW: 'onerr';
 ISERR_KW: 'iserr';
 NOERR_KW: 'noerr';
 ERROR_KW: 'error';
+ERRABLE_KW: 'err';
+MUTABLE_KW: 'mut';
 LOOP_KW: 'loop';
 IF_KW: 'if';
 ELSE_KW: 'else';
@@ -185,6 +187,10 @@ type:
   | mutable=NOT_SYM errable=QUESETIONMARK_SYM
   | mutable=NOT_SYM
   | errable=QUESETIONMARK_SYM
+  | errable=ERRABLE_KW mutable=MUTABLE_KW
+  | mutable=MUTABLE_KW errable=ERRABLE_KW
+  | mutable=MUTABLE_KW
+  | errable=ERRABLE_KW
 )? ty=base_t size?;
 
   // Base types:
